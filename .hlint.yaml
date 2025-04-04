@@ -1,0 +1,3 @@
+# - ignore: {name: "Use module export list"}
+- arguments:
+  - -XQuasiQuotes

@@ -1,0 +1,94 @@
+name: jsonpatch
+version: 0.0.0.0
+maintainer: Patrick Brisbin
+category: JSON
+github: pbrisbin/jsonpatch
+synopsis: JSON Patch parsing and application
+description: |
+  This is a Haskell library for parsing and applying JSON Patches
+
+  From <https://www.json.org/>:
+
+  JSON Patch is a format for describing changes to a
+  [JSON](https://www.json.org/) document. It can be used to avoid sending a
+  whole document when only a part has changed. When used in combination with the
+  [HTTP PATCH method](https://datatracker.ietf.org/doc/html/rfc5789/), it allows
+  partial updates for HTTP APIs in a standards compliant way.
+
+  The patch documents are themselves JSON documents.
+
+  JSON Patch is specified in [RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902/) from the IETF.
+
+extra-doc-files:
+  - README.md
+  - CHANGELOG.md
+
+extra-source-files:
+  - package.yaml
+
+ghc-options:
+  - -Weverything
+  - -Wno-all-missed-specialisations
+  - -Wno-missed-specialisations
+  - -Wno-missing-exported-signatures # re-enables missing-signatures
+  - -Wno-missing-import-lists
+  - -Wno-missing-local-signatures
+  - -Wno-monomorphism-restriction
+  - -Wno-safe
+  - -Wno-unsafe
+
+when:
+  - condition: "impl(ghc >= 9.8)"
+    ghc-options:
+      - -Wno-missing-role-annotations
+      - -Wno-missing-poly-kind-signatures
+  - condition: "impl(ghc >= 9.2)"
+    ghc-options:
+      - -Wno-missing-kind-signatures
+  - condition: "impl(ghc >= 8.10)"
+    ghc-options:
+      - -Wno-missing-safe-haskell-mode
+      - -Wno-prepositive-qualified-module
+  - condition: "impl(ghc >= 8.8)"
+    ghc-options:
+      - -fwrite-ide-info
+
+dependencies:
+  - base < 5
+
+language: GHC2021
+
+default-extensions:
+  - DataKinds
+  - DeriveAnyClass
+  - DerivingStrategies
+  - DerivingVia
+  - DuplicateRecordFields
+  - GADTs
+  - LambdaCase
+  - NoFieldSelectors
+  - NoImplicitPrelude
+  - NoMonomorphismRestriction
+  - NoPostfixOperators
+  - OverloadedRecordDot
+  - OverloadedStrings
+  - QuasiQuotes
+  - TypeFamilies
+
+library:
+  source-dirs: src
+  dependencies:
+    - aeson
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options: -threaded -rtsopts "-with-rtsopts=-N"
+    dependencies:
+      - aeson
+      - aeson-qq
+      - hspec
+      - jsonpatch
+      - shakespeare
+      - text
