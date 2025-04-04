@@ -106,6 +106,7 @@ test-suite spec
     , aeson-qq
     , base <5
     , hspec
+    , hspec-expectations-json
     , jsonpatch
     , shakespeare
     , text

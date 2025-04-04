@@ -9,6 +9,7 @@ import Data.Aeson.QQ
 import Data.JSON.Patch
 import Data.Text.Lazy.Encoding (encodeUtf8)
 import Test.Hspec
+import Test.Hspec.Expectations.Json
 import Text.Shakespeare.Text (lt)
 
 spec :: Spec
@@ -41,9 +42,9 @@ spec = do
             }
           |]
 
-      let actual = do
+      let actual = either error id $ do
             document <- eitherDecode @Value $ encodeUtf8 documentT
             patches <- eitherDecode @[Patch] $ encodeUtf8 patchesT
             applyPatches patches document
 
-      actual `shouldBe` Right expected
+      actual `shouldMatchJson` expected

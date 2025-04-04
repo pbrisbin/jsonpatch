@@ -90,6 +90,7 @@ tests:
       - aeson
       - aeson-qq
       - hspec
+      - hspec-expectations-json
       - jsonpatch
       - shakespeare
       - text
