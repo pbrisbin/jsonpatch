@@ -40,6 +40,7 @@ library
       Data.JSON.Patch
       Data.JSON.Patch.Apply
       Data.JSON.Patch.Type
+      Data.JSON.Pointer
   other-modules:
       Paths_jsonpatch
   hs-source-dirs:
@@ -64,6 +65,7 @@ library
   build-depends:
       aeson
     , base <5
+    , text
   default-language: GHC2021
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures

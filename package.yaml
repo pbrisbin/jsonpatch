@@ -79,6 +79,7 @@ library:
   source-dirs: src
   dependencies:
     - aeson
+    - text
 
 tests:
   spec:
