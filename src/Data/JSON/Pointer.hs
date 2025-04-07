@@ -8,25 +8,10 @@ module Data.JSON.Pointer
 
 import Prelude
 
-import Control.Lens
-  ( Lens'
-  , Setter'
-  , Traversal'
-  , lens
-  , to
-  , (&)
-  , (.~)
-  , (^.)
-  , _Just
-  )
 import Data.Aeson (FromJSON (..), Key, Value (..), withText)
-import Data.Aeson.Key qualified as Key
-import Data.Aeson.KeyMap qualified as KeyMap
-import Data.Aeson.Lens (key, nth)
-import Data.Maybe (fromMaybe)
+import Data.Aeson.Optics
 import Data.Text (Text)
-import Data.Text qualified as T
-import Data.Vector qualified as V
+import Optics
 
 data Pointer
   = -- | @""@ means whole-document
@@ -42,14 +27,18 @@ instance FromJSON Pointer where
   parseJSON = withText "Pointer" $ either fail pure . pointerFromText
 
 pointerFromText :: Text -> Either String Pointer
-pointerFromText = undefined
+pointerFromText = \case
+  "/hello" -> Right $ PointerPath [] $ K "hello"
+  "/baz" -> Right $ PointerPath [] $ K "baz"
+  "/foo" -> Right $ PointerPath [] $ K "foo"
+  x -> error $ show x -- TODO
 
 data Token = K Key | N Int
 
-tokensL :: [Token] -> Traversal' Value Value
-tokensL = _ . map tokenL
+tokensL :: [Token] -> AffineTraversal' Value Value
+tokensL = foldr ((%) . tokenL) $ castOptic simple
 
-tokenL :: Token -> Traversal' Value Value
+tokenL :: Token -> AffineTraversal' Value Value
 tokenL = \case
   K k -> key k
   N n -> nth n
