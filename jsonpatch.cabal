@@ -65,7 +65,11 @@ library
   build-depends:
       aeson
     , base <5
+    , lens
+    , lens-aeson
+    , mtl
     , text
+    , vector
   default-language: GHC2021
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures

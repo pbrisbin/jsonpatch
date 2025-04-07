@@ -79,7 +79,11 @@ library:
   source-dirs: src
   dependencies:
     - aeson
+    - lens
+    - lens-aeson
+    - mtl
     - text
+    - vector
 
 tests:
   spec:

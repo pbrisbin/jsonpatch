@@ -34,7 +34,13 @@ instance FromJSON Patch where
       "copy" -> Copy <$> parseJSON (Object o)
       "move" -> Move <$> parseJSON (Object o)
       "test" -> Test <$> parseJSON (Object o)
-      _ -> fail "TODO"
+      x ->
+        fail
+          $ concat
+            [ "unexpected operation, "
+            , show x
+            , ", must be one of add, remove, replace, copy, move, or test"
+            ]
 
 data AddOp = AddOp
   { path :: Pointer
