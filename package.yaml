@@ -84,6 +84,7 @@ library:
     - mtl
     - optics
     - text
+    - vector
 
 tests:
   spec:

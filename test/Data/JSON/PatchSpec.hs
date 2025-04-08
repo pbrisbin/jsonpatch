@@ -7,6 +7,7 @@ import Prelude
 import Data.Aeson (Value, eitherDecode)
 import Data.Aeson.QQ
 import Data.JSON.Patch
+import Data.Text.Lazy (Text)
 import Data.Text.Lazy.Encoding (encodeUtf8)
 import Test.Hspec
 import Test.Hspec.Expectations.Json
@@ -16,35 +17,38 @@ spec :: Spec
 spec = do
   context "Simple example" $ do
     it "works" $ do
-      let
-        documentT =
-          [lt|
-            {
-              "baz": "qux",
-              "foo": "bar"
-            }
-          |]
+      runExamplePatch
+        [lt|{
+          "baz": "qux",
+          "foo": "bar"
+        }|]
+        [lt|[
+          { "op": "replace", "path": "/baz", "value": "boo" },
+          { "op": "add", "path": "/hello", "value": ["world"] },
+          { "op": "remove", "path": "/foo" }
+        ]|]
+        [aesonQQ|{
+          "baz": "boo",
+          "hello": ["world"]
+        }|]
 
-        patchesT =
-          [lt|
-            [
-              { "op": "replace", "path": "/baz", "value": "boo" },
-              { "op": "add", "path": "/hello", "value": ["world"] },
-              { "op": "remove", "path": "/foo" }
-            ]
-          |]
+  context "Add" $ do
+    it "to end-of-array" $ do
+      runExamplePatch
+        [lt|{ "foo": ["bar", "baz"] }|]
+        [lt|[ { "op": "add", "path": "/foo/-", "value": "bat" } ]|]
+        [aesonQQ|{ "foo": ["bar", "baz", "bat"] }|]
 
-        expected =
-          [aesonQQ|
-            {
-              "baz": "boo",
-              "hello": ["world"]
-            }
-          |]
+runExamplePatch :: HasCallStack => Text -> Text -> Value -> Expectation
+runExamplePatch documentT patchesT expected = do
+  document <- fromLeft "decode document" $ eitherDecode $ encodeUtf8 documentT
+  patches <- fromLeft "decode patches" $ eitherDecode $ encodeUtf8 patchesT
+  actual <- fromLeft "apply" $ applyPatches patches document
+  actual `shouldMatchJson` expected
 
-      let actual = either error id $ do
-            document <- eitherDecode @Value $ encodeUtf8 documentT
-            patches <- eitherDecode @[Patch] $ encodeUtf8 patchesT
-            applyPatches patches document
-
-      actual `shouldMatchJson` expected
+fromLeft :: HasCallStack => String -> Either String a -> IO a
+fromLeft act = \case
+  Left er -> do
+    expectationFailure $ "Failed to " <> act <> ":\n" <> er
+    error "unreachable"
+  Right a -> pure a
