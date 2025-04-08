@@ -1,5 +1,10 @@
 # jsonpatch
 
+[![Hackage](https://img.shields.io/hackage/v/jsonpatch.svg?style=flat)](https://hackage.haskell.org/package/jsonpatch)
+[![Stackage Nightly](http://stackage.org/package/jsonpatch/badge/nightly)](http://stackage.org/nightly/package/jsonpatch)
+[![Stackage LTS](http://stackage.org/package/jsonpatch/badge/lts)](http://stackage.org/lts/package/jsonpatch)
+[![CI](https://github.com/pbrisbin/jsonpatch/actions/workflows/ci.yml/badge.svg)](https://github.com/pbrisbin/jsonpatch/actions/workflows/ci.yml)
+
 Haskell package for parsing and applying [JSON Patches][jsonpatch].
 
 [jsonpatch]: https://jsonpatch.com/
