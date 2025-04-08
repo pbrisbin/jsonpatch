@@ -120,7 +120,19 @@ nUpdater n nv = \case
     v -> v
 
 vDeleteAt :: Int -> Vector a -> Vector a
-vDeleteAt = undefined
+vDeleteAt n vec = vGenerate $ V.imapMaybe shift vec
+ where
+  shift idx a
+    | idx < n = Just (idx, a)
+    | idx == n = Nothing
+    | otherwise = Just (idx - 1, a)
 
 vInsertAt :: Int -> a -> Vector a -> Vector a
-vInsertAt = undefined
+vInsertAt n v vec = vGenerate $ V.imap shift vec <> pure (n, v)
+ where
+  shift idx a
+    | idx >= n = (idx + 1, a)
+    | otherwise = (idx, a)
+
+vGenerate :: Vector (Int, a) -> Vector a
+vGenerate indexed = V.generate (V.length indexed) $ snd . (V.!) indexed
