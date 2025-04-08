@@ -65,6 +65,7 @@ library
   build-depends:
       aeson
     , aeson-optics
+    , attoparsec
     , base <5
     , mtl
     , optics
@@ -84,6 +85,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Data.JSON.PatchSpec
+      Data.JSON.PointerSpec
       Paths_jsonpatch
   hs-source-dirs:
       test

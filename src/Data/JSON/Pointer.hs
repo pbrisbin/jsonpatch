@@ -1,6 +1,7 @@
 -- <https://datatracker.ietf.org/doc/html/rfc6901/>
 module Data.JSON.Pointer
   ( Pointer (..)
+  , pointerFromText
   , pointerToText
   , pointerToString
   , Token (..)
@@ -10,12 +11,15 @@ module Data.JSON.Pointer
 
 import Prelude
 
+import Control.Applicative ((<|>))
 import Data.Aeson (FromJSON (..), Key, Value (..), withText)
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.Optics
+import Data.Attoparsec.Text
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
 import Optics
+import Text.Read (readEither)
 
 data Pointer
   = -- | @""@ means whole-document
@@ -33,10 +37,29 @@ instance FromJSON Pointer where
 
 pointerFromText :: Text -> Either String Pointer
 pointerFromText = \case
-  "/hello" -> Right $ PointerPath [] $ K "hello"
-  "/baz" -> Right $ PointerPath [] $ K "baz"
-  "/foo" -> Right $ PointerPath [] $ K "foo"
-  x -> error $ show x -- TODO
+  "" -> Right PointerEmpty
+  t -> parseOnly (pointerP <* endOfInput) t
+
+pointerP :: Parser Pointer
+pointerP = do
+  ts <- char '/' *> many' (tokenP <* char '/')
+  PointerPathEnd ts <$ char '-' <|> PointerPath ts <$> tokenP
+
+tokenP :: Parser Token
+tokenP = N <$> indexP <|> K <$> keyP
+
+keyP :: Parser Key
+keyP =
+  Key.fromText
+    . T.replace "~0" "~"
+    . T.replace "~1" "/"
+    <$> takeTill (== '/')
+
+indexP :: Parser Int
+indexP = do
+  ds <- many1 digit
+  either (\msg -> fail $ "Unable to read integer from " <> ds <> ": " <> msg) pure
+    $ readEither ds
 
 pointerToText :: Pointer -> Text
 pointerToText = \case

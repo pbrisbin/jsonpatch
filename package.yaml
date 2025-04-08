@@ -80,6 +80,7 @@ library:
   dependencies:
     - aeson
     - aeson-optics
+    - attoparsec
     - mtl
     - optics
     - text
