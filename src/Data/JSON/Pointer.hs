@@ -5,8 +5,10 @@ module Data.JSON.Pointer
   , pointerToText
   , pointerToString
   , Token (..)
+  , tokensToText
+  , tokensToString
   , tokensL
-  , tokenL
+  , atTokenL
   ) where
 
 import Prelude
@@ -14,10 +16,13 @@ import Prelude
 import Control.Applicative ((<|>))
 import Data.Aeson (FromJSON (..), Key, Value (..), withText)
 import Data.Aeson.Key qualified as Key
+import Data.Aeson.KeyMap qualified as KeyMap
 import Data.Aeson.Optics
 import Data.Attoparsec.Text
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
+import Data.Vector (Vector)
+import Data.Vector qualified as V
 import Optics
 import Text.Read (readEither)
 
@@ -64,14 +69,20 @@ indexP = do
 pointerToText :: Pointer -> Text
 pointerToText = \case
   PointerEmpty -> ""
-  PointerPath ts t -> "/" <> T.intercalate "/" (map tokenToText $ ts <> [t])
-  PointerPathEnd ts -> "/" <> T.intercalate "/" (map tokenToText ts <> ["-"])
+  PointerPath ts t -> tokensToText $ ts <> [t]
+  PointerPathEnd ts -> tokensToText ts <> "/-"
 
 pointerToString :: Pointer -> String
 pointerToString = unpack . pointerToText
 
 data Token = K Key | N Int
   deriving stock (Eq, Show)
+
+tokensToString :: [Token] -> String
+tokensToString = unpack . tokensToText
+
+tokensToText :: [Token] -> Text
+tokensToText ts = "/" <> T.intercalate "/" (map tokenToText ts <> ["-"])
 
 tokenToText :: Token -> Text
 tokenToText = \case
@@ -80,8 +91,36 @@ tokenToText = \case
 
 tokensL :: [Token] -> AffineTraversal' Value Value
 tokensL = foldr ((%) . tokenL) $ castOptic simple
+ where
+  -- When traversing tokens, replace missing bits with empty structures
+  tokenL t = case t of
+    K _ -> atTokenL t % non (Object mempty)
+    N _ -> atTokenL t % non (Array mempty)
 
-tokenL :: Token -> AffineTraversal' Value Value
-tokenL = \case
-  K k -> key k
-  N n -> nth n
+atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
+atTokenL = \case
+  K k -> _Object % at k
+  N n -> atraversal (nMatcher n) (nUpdater n)
+
+nMatcher :: Int -> Value -> Either Value (Maybe Value)
+nMatcher n = \case
+  Object km -> Right $ KeyMap.lookup (Key.fromString $ show n) km
+  Array vec -> Right $ vec V.!? n
+  v -> Left v
+
+nUpdater :: Int -> Value -> Maybe Value -> Value
+nUpdater n nv = \case
+  Nothing -> case nv of
+    Object km -> Object $ KeyMap.delete (Key.fromString $ show n) km
+    Array vec -> Array $ vDeleteAt n vec
+    v -> v
+  Just x -> case nv of
+    Object km -> Object $ KeyMap.insert (Key.fromString $ show n) x km
+    Array vec -> Array $ vInsertAt n x vec
+    v -> v
+
+vDeleteAt :: Int -> Vector a -> Vector a
+vDeleteAt = undefined
+
+vInsertAt :: Int -> a -> Vector a -> Vector a
+vInsertAt = undefined

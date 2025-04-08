@@ -36,44 +36,56 @@ applyPatch = \case
         <> show op.value
 
 get :: (MonadError String m, MonadState Value m) => Pointer -> m Value
-get p = case p of
+get = \case
   PointerEmpty -> gets id
   PointerPath ts t -> do
-    gets (preview $ tokensL ts % tokenL t) >>= \case
-      Nothing -> pointerError p "the specified value does not exist"
-      Just v -> pure v
-  PointerPathEnd ts ->
-    gets (preview $ tokensL ts % _Array % to lastMaybeV) >>= \case
-      Nothing -> pointerError p "the specified value does not exist"
-      Just Nothing -> pointerError p "the specified array is empty"
+    gets (preview $ tokensL ts % atTokenL t) >>= \case
+      Nothing -> tokensError ts "the specified value does not exist"
+      Just Nothing -> tokensError (ts <> [t]) "the specified value does not exist"
       Just (Just v) -> pure v
+  PointerPathEnd ts -> withVectorUnsnoc ts $ pure . snd
 
-add :: MonadState Value m => Value -> Pointer -> m ()
+add :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
 add v = \case
   PointerEmpty -> put v
-  PointerPath ts t -> case t of
-    K k -> modify $ tokensL ts % _Object % at k ?~ v
-    N _ -> error "TODO"
-  PointerPathEnd ts -> modify $ tokensL ts % _Array %~ (<> pure v)
+  PointerPath ts t -> modify $ tokensL ts % atTokenL t ?~ v
+  PointerPathEnd ts -> withVector ts $ \_ ->
+    modify $ tokensL ts % _Array %~ (<> pure v)
 
 remove :: (MonadError String m, MonadState Value m) => Pointer -> m ()
 remove = \case
   PointerEmpty -> put Null -- unspecified behavior
-  PointerPath ts t -> case t of
-    K k -> modify $ tokensL ts % _Object % at k .~ Nothing
-    N _ -> error "TODO"
-  p@(PointerPathEnd ts) -> do
-    gets (preview $ tokensL ts % _Array) >>= \case
-      Nothing -> pointerError p "the specified value doesn't exist or is not an array"
-      Just vs -> case V.unsnoc vs of
-        Nothing -> pointerError p "the specified array is empty"
-        Just (vs', _) -> modify $ tokensL ts % _Array .~ vs'
+  PointerPath ts t -> modify $ tokensL ts % atTokenL t .~ Nothing
+  PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
+    modify $ tokensL ts % _Array .~ vs
 
 replace :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
 replace v p = remove p >> add v p
 
+withVector
+  :: (MonadError String m, MonadState Value m)
+  => [Token]
+  -> (Vector Value -> m a)
+  -> m a
+withVector ts f =
+  gets (preview $ tokensL ts % _Array) >>= \case
+    Nothing -> tokensError ts "the specified value doesn't exist or is not an array"
+    Just vs -> f vs
+
+withVectorUnsnoc
+  :: (MonadError String m, MonadState Value m)
+  => [Token]
+  -> ((Vector Value, Value) -> m a)
+  -> m a
+withVectorUnsnoc ts f =
+  gets (preview $ tokensL ts % _Array) >>= \case
+    Nothing -> tokensError ts "the specified value doesn't exist or is not an array"
+    Just vs -> case V.unsnoc vs of
+      Nothing -> tokensError ts "the specified array is empty"
+      Just tp -> f tp
+
 pointerError :: MonadError String m => Pointer -> String -> m a
 pointerError p msg = throwError $ pointerToString p <> ": " <> msg
 
-lastMaybeV :: Vector a -> Maybe a
-lastMaybeV v = snd <$> V.unsnoc v
+tokensError :: MonadError String m => [Token] -> String -> m a
+tokensError ts msg = throwError $ tokensToString ts <> ": " <> msg
