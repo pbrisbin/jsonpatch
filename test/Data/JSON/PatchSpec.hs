@@ -39,6 +39,13 @@ spec = do
         [lt|[ { "op": "add", "path": "/foo/-", "value": "bat" } ]|]
         [aesonQQ|{ "foo": ["bar", "baz", "bat"] }|]
 
+  context "Remove" $ do
+    it "from end-of-array" $ do
+      runExamplePatch
+        [lt|{ "foo": ["bar", "baz"] }|]
+        [lt|[ { "op": "remove", "path": "/foo/-" } ]|]
+        [aesonQQ|{ "foo": ["bar"] }|]
+
 runExamplePatch :: HasCallStack => Text -> Text -> Value -> Expectation
 runExamplePatch documentT patchesT expected = do
   document <- fromLeft "decode document" $ eitherDecode $ encodeUtf8 documentT
