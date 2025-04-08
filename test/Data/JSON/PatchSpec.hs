@@ -4,41 +4,45 @@ module Data.JSON.PatchSpec
 
 import Prelude
 
-import Data.Aeson (eitherDecode)
-import Data.Aeson.QQ
+import Data.Aeson
+import Data.ByteString.Lazy qualified as BSL
+import Data.Foldable (for_)
 import Data.JSON.Patch
-import Data.Text.Lazy.Encoding (encodeUtf8)
+import Data.List (sort)
+import Path
+import Path.IO
 import Test.Hspec
 import Test.Hspec.Expectations.Json
-import Text.Shakespeare.Text (lt)
 
 spec :: Spec
 spec = do
-  context "Simple example" $ do
-    it "works" $ do
-      document <-
-        either failure pure
-          $ eitherDecode
-          $ encodeUtf8
-            [lt|{
-              "baz": "qux",
-              "foo": "bar"
-            }|]
+  context "fixtures" $ do
+    (dirs, _) <- runIO $ listDirRel fixtures
 
-      patches <-
-        either failure pure
-          $ eitherDecode
-          $ encodeUtf8
-            [lt|[
-              { "op": "replace", "path": "/baz", "value": "boo" },
-              { "op": "add", "path": "/hello", "value": ["world"] },
-              { "op": "remove", "path": "/foo" }
-            ]|]
+    for_ (sort dirs) $ \dir -> specify (toFilePath dir) $ do
+      (document, patch, expected) <- decodeFixtures dir
 
-      actual <- either failure pure $ applyPatches patches document
-      actual `shouldMatchJson` [aesonQQ|{ baz: "boo", hello: ["world"] }|]
+      case applyPatches patch document of
+        Left err -> expectationFailure $ "Patches failed: " <> err
+        Right actual -> actual `shouldMatchJson` expected
 
-failure :: HasCallStack => String -> IO a
-failure msg = do
-  expectationFailure msg
-  error "unreachable"
+fixtures :: Path Rel Dir
+fixtures = [reldir|examples|]
+
+decodeFixtures :: HasCallStack => Path Rel Dir -> IO (Value, [Patch], Value)
+decodeFixtures dir =
+  (,,)
+    <$> decodeFixture (fixtures </> dir </> [relfile|input.json|])
+    <*> decodeFixture (fixtures </> dir </> [relfile|patch.json|])
+    <*> decodeFixture (fixtures </> dir </> [relfile|output.json|])
+
+decodeFixture :: (FromJSON a, HasCallStack) => Path Rel File -> IO a
+decodeFixture file = do
+  bytes <- BSL.readFile fp
+  case eitherDecode bytes of
+    Left ex -> do
+      expectationFailure $ "Invalid fixture: " <> fp <> ":\n" <> ex
+      error "unreachable"
+    Right a -> pure a
+ where
+  fp = toFilePath file

@@ -1,0 +1,7 @@
+[
+  {
+    "op": "add",
+    "path": "/foo/2",
+    "value": "bat"
+  }
+]

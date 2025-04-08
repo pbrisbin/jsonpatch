@@ -24,7 +24,7 @@ extra-doc-files:
   - CHANGELOG.md
 
 extra-source-files:
-  - package.yaml
+  - examples/**/*.json
 
 ghc-options:
   - -Weverything
@@ -93,9 +93,9 @@ tests:
     ghc-options: -threaded -rtsopts "-with-rtsopts=-N"
     dependencies:
       - aeson
-      - aeson-qq
+      - bytestring
       - hspec
       - hspec-expectations-json
       - jsonpatch
-      - shakespeare
-      - text
+      - path
+      - path-io
