@@ -22,6 +22,7 @@ data Patch
   | Copy CopyOp
   | Move MoveOp
   | Test TestOp
+  deriving stock (Eq, Show)
 
 instance FromJSON Patch where
   parseJSON = withObject "Operation" $ \o -> do
@@ -46,39 +47,39 @@ data AddOp = AddOp
   { path :: Pointer
   , value :: Value
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON)
 
 newtype RemoveOp = RemoveOp
   { path :: Pointer
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON)
 
 data ReplaceOp = ReplaceOp
   { path :: Pointer
   , value :: Value
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON)
 
 data CopyOp = CopyOp
   { from :: Pointer
   , path :: Pointer
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON)
 
 data MoveOp = MoveOp
   { from :: Pointer
   , path :: Pointer
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON)
 
 data TestOp = TestOp
   { path :: Pointer
   , value :: Value
   }
-  deriving stock (Generic)
+  deriving stock (Eq, Generic, Show)
   deriving anyclass (FromJSON)
