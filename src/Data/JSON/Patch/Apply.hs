@@ -53,7 +53,7 @@ get = \case
     gets (preview $ tokensL ts % tokenL t) >>= \case
       Nothing -> tokensError ts "the specified value does not exist"
       Just v -> pure v
-  PointerPathEnd ts -> withVectorUnsnoc ts $ pure . snd
+  PointerPathEnd ts -> assertArrayUnsnoc ts $ pure . snd
 
 add :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
 add v = \case
@@ -61,9 +61,10 @@ add v = \case
   PointerPath ts t -> do
     -- adding to something non-existent is an error
     assertExists ts
+    -- adding outside of bounds is an error
     withN t $ assertBounds (>) ts
     modify $ tokensL ts % atTokenL t ?~ v
-  PointerPathEnd ts -> withVector ts $ \_ ->
+  PointerPathEnd ts -> assertArray ts $ \_ ->
     modify $ tokensL ts % _Array %~ (<> pure v)
 
 remove :: (MonadError String m, MonadState Value m) => Pointer -> m ()
@@ -74,9 +75,10 @@ remove p = do
   case p of
     PointerEmpty -> put Null -- unspecified behavior
     PointerPath ts t -> do
+      -- removing outside of bounds is an error
       withN t $ assertBounds (>=) $ ts <> [t]
       modify $ tokensL ts % atTokenL t .~ Nothing
-    PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
+    PointerPathEnd ts -> assertArrayUnsnoc ts $ \(vs, _) ->
       modify $ tokensL ts % _Array .~ vs
 
 assertExists :: (MonadError String m, MonadState Value m) => [Token] -> m ()
@@ -109,22 +111,22 @@ assertBounds p ts n = do
           <> show vec
     _ -> pure ()
 
-withVector
+assertArray
   :: (MonadError String m, MonadState Value m)
   => [Token]
   -> (Vector Value -> m a)
   -> m a
-withVector ts f =
+assertArray ts f =
   gets (preview $ tokensL ts % _Array) >>= \case
     Nothing -> tokensError ts "the specified value doesn't exist or is not an array"
     Just vs -> f vs
 
-withVectorUnsnoc
+assertArrayUnsnoc
   :: (MonadError String m, MonadState Value m)
   => [Token]
   -> ((Vector Value, Value) -> m a)
   -> m a
-withVectorUnsnoc ts f =
+assertArrayUnsnoc ts f =
   gets (preview $ tokensL ts % _Array) >>= \case
     Nothing -> tokensError ts "the specified value doesn't exist or is not an array"
     Just vs -> case V.unsnoc vs of
