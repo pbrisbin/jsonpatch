@@ -26,21 +26,7 @@ bug-reports:    https://github.com/pbrisbin/jsonpatch/issues
 maintainer:     Patrick Brisbin
 build-type:     Simple
 extra-source-files:
-    examples/add-array/input.json
-    examples/add-array/output.json
-    examples/add-array/patch.json
-    examples/add-end-of-array/input.json
-    examples/add-end-of-array/output.json
-    examples/add-end-of-array/patch.json
-    examples/remove-array/input.json
-    examples/remove-array/output.json
-    examples/remove-array/patch.json
-    examples/remove-end-of-array/input.json
-    examples/remove-end-of-array/output.json
-    examples/remove-end-of-array/patch.json
-    examples/simple/input.json
-    examples/simple/output.json
-    examples/simple/patch.json
+    tests.json
 extra-doc-files:
     README.md
     CHANGELOG.md
@@ -99,6 +85,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Data.JSON.Patch.PointerSpec
       Data.JSON.PatchSpec
       Data.JSON.PointerSpec
       Paths_jsonpatch
@@ -123,13 +110,17 @@ test-suite spec
   ghc-options: -Weverything -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe -threaded -rtsopts "-with-rtsopts=-N"
   build-depends:
       aeson
+    , aeson-pretty
+    , aeson-qq
     , base <5
     , bytestring
     , hspec
     , hspec-expectations-json
     , jsonpatch
+    , optics
     , path
     , path-io
+    , text
   default-language: GHC2021
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
