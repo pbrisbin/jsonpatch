@@ -23,6 +23,7 @@ import Data.Aeson.Encode.Pretty
 import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Data.JSON.Patch
+import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import GHC.Int (Int64)
 import Path
 import System.Exit (exitFailure)
@@ -53,6 +54,11 @@ instance FromJSON PatchTest where
     toExpected Nothing (Just b) = Left b
     toExpected a b = Left $ "invalid test? expected=" <> show a <> ", error=" <> show b
 
+runPatchTests :: Path b File -> Spec
+runPatchTests path = do
+  tests <- runIO $ decodeFileThrow @[PatchTest] path
+  zipWithM_ runPatchTest [0 ..] tests
+
 runPatchTest :: HasCallStack => Int -> PatchTest -> Spec
 runPatchTest n t = do
   let it' = if t.focus then fit else it
@@ -63,7 +69,8 @@ runPatchTest n t = do
     case fromJSON t.patch of
       Error err ->
         case t.expected of
-          Left _ -> pure () -- task failed successfully
+          -- Failed and should have
+          Left e -> validateErrors err e
           Right v ->
             expectationFailure
               $ unlines
@@ -95,12 +102,26 @@ runPatchTest n t = do
                 , "  Patch:\n" <> indentedPretty 7 t.patch
                 ]
           -- Failed and should have
-          (Left _, Left _) -> pure ()
+          (Left ex, Left e) -> validateErrors ex e
 
-runPatchTests :: Path b File -> Spec
-runPatchTests path = do
-  tests <- runIO $ decodeFileThrow @[PatchTest] path
-  zipWithM_ runPatchTest [0 ..] tests
+validateErrors :: String -> String -> IO ()
+validateErrors actual expected = do
+  case lookup expected errorsMap of
+    Nothing ->
+      expectationFailure
+        $ unlines
+          [ "Error case not seen before"
+          , "Add the following (or similar) as a new element to errorsMap:"
+          , ", ( " <> show expected <> ", (== " <> show actual <> "))"
+          ]
+    Just p
+      | not $ p actual ->
+          expectationFailure
+            $ unlines
+              [ "Error " <> show expected <> " did not pass predicate"
+              , "Actual message: " <> show actual
+              ]
+    _ -> pure ()
 
 spec :: Spec
 spec = do
@@ -128,3 +149,41 @@ indentedPretty n =
  where
   indent = BSL8.replicate n ' '
   config = defConfig {confIndent = Spaces 2}
+
+{- FOURMOLU_DISABLE -}
+
+errorsMap :: [(String, String -> Bool)]
+errorsMap =
+  [ ("JSON Pointer should start with a slash", (== "'/': Failed reading: satisfy"))
+  , ("Object operation on array target", (== "/-: Object operation on non-object"))
+  , ("Out of bounds (upper)", ("is out of bounds" `isInfixOf`))
+  , ("Unrecognized op 'spam'", ("unexpected operation" `isPrefixOf`))
+  , ("add to a non-existent target", (== "/baz/-: the specified value doesn't exist"))
+  , ("copy op shouldn't work with bad number", (== "/baz/-: the specified value does not exist"))
+  , ("index is greater than number of items in array", ("is out of bounds" `isInfixOf`))
+  , ("missing 'from' location", (== "/-: the specified value does not exist"))
+  , ("missing 'from' parameter", ("key \"from\" not found" `isSuffixOf`))
+  , ("missing 'path' parameter", ("key \"path\" not found" `isSuffixOf`))
+  , ("missing 'value' parameter", ("key \"value\" not found" `isSuffixOf`))
+  , ("move op shouldn't work with bad number", (== "/baz/-: the specified value does not exist"))
+  , ("null is not valid value for 'path'", ("encountered Null" `isSuffixOf`))
+  , ("number is not equal to string", (== "/~1/-: test failed: Number 10.0 != String \"10\""))
+  , ("path /a does not exist -- missing objects are not created recursively", (== "/a/-: the specified value doesn't exist"))
+  , ("remove op shouldn't remove from array with bad number", ("the specified value doesn't exist" `isSuffixOf`))
+  , ("removing a nonexistent field should fail", ("the specified value doesn't exist" `isSuffixOf`))
+  , ("removing a nonexistent index should fail", ("the specified value doesn't exist" `isSuffixOf`))
+  , ("replace op should fail with missing parent key", (== "/foo/bar/-: the specified value doesn't exist"))
+  , ("replace op shouldn't replace in array with bad number", (== "/1e0/-: the specified value doesn't exist"))
+  , ("string not equivalent", (== "/baz/-: test failed: String \"qux\" != String \"bar\""))
+  , ("test op should fail", (== "/foo/-: test failed: Object (fromList [(\"bar\",Array [Number 1.0,Number 2.0,Number 5.0,Number 4.0])]) != Array [Number 1.0,Number 2.0]"))
+  , ("test op shouldn't get array element 1", (== "/-: the specified value does not exist"))
+  ]
+  <> todo
+ where
+  -- These need fixing or to be improved
+  todo =
+    [ ("Out of bounds (lower)", (== "/bar/-: Object operation on non-object"))
+    , ("add op shouldn't add to array with bad number", (== "/-: Object operation on non-object"))
+    , ("test op should reject the array value, it has leading zeros", (== "endOfInput"))
+    , ("test op should reject the array value, it has leading zeros", (== "endOfInput"))
+    ]
