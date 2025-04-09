@@ -89,6 +89,7 @@ test-suite spec
   other-modules:
       Data.JSON.Patch.PointerSpec
       Data.JSON.PatchSpec
+      Data.Vector.ExtSpec
       Paths_jsonpatch
   hs-source-dirs:
       test
@@ -118,6 +119,7 @@ test-suite spec
     , hspec-expectations-json
     , jsonpatch
     , path
+    , vector
   default-language: GHC2021
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures

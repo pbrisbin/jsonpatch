@@ -99,3 +99,4 @@ tests:
       - hspec-expectations-json
       - jsonpatch
       - path
+      - vector
