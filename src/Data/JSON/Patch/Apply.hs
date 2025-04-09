@@ -60,6 +60,9 @@ add :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
 add v = \case
   PointerEmpty -> put v
   PointerPath ts t -> do
+    -- adding to something non-existent is an error
+    assertExists ts
+
     case t of
       N n -> assertBounds (>) ts n
       _ -> pure ()
@@ -70,7 +73,9 @@ add v = \case
 
 remove :: (MonadError String m, MonadState Value m) => Pointer -> m ()
 remove p = do
-  void $ get p -- assert removing a pointer must exist
+  -- removing something non-existent is an error
+  void $ get p
+
   case p of
     PointerEmpty -> put Null -- unspecified behavior
     PointerPath ts t -> do
@@ -82,6 +87,13 @@ remove p = do
     PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
       modify $ tokensL ts % _Array .~ vs
 
+assertExists :: (MonadError String m, MonadState Value m) => [Token] -> m ()
+assertExists ts = do
+  mv <- gets $ preview $ tokensL ts
+  case mv of
+    Nothing -> tokensError ts "the specified value doesn't exist"
+    Just {} -> pure ()
+
 assertBounds
   :: (MonadError String m, MonadState Value m)
   => (Int -> Int -> Bool)
@@ -89,8 +101,9 @@ assertBounds
   -> [Token]
   -- ^ Tokens to object to validate (if an 'Array')
   -> Int
-  -- ^ First argument to validation (e.g. index). Passed separately so it can be
-  -- used in error messages
+  -- ^ First argument to validation (e.g. index)
+  --
+  -- Passed separately so it can be used in error messages
   -> m ()
 assertBounds p ts n = do
   mv <- gets $ preview $ tokensL ts

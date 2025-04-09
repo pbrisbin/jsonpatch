@@ -97,11 +97,15 @@ runPatchTest n t = do
           -- Failed and should have
           (Left _, Left _) -> pure ()
 
+runPatchTests :: Path b File -> Spec
+runPatchTests path = do
+  tests <- runIO $ decodeFileThrow @[PatchTest] path
+  zipWithM_ runPatchTest [0 ..] tests
+
 spec :: Spec
 spec = do
-  context "json-patch-tests" $ do
-    tests <- runIO $ decodeFileThrow @[PatchTest] [relfile|tests.json|]
-    zipWithM_ runPatchTest [0 ..] tests
+  context "json-patch-tests main" $ runPatchTests [relfile|tests.json|]
+  context "json-patch-tests RFC6092" $ runPatchTests [relfile|spec_tests.json|]
 
 decodeFileThrow :: FromJSON a => Path b File -> IO a
 decodeFileThrow file = do
