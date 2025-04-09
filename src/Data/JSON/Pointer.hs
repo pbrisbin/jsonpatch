@@ -14,11 +14,13 @@ module Data.JSON.Pointer
 import Prelude
 
 import Control.Applicative ((<|>))
+import Control.Monad (when)
 import Data.Aeson (FromJSON (..), Key, Value (..), withText)
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KeyMap
 import Data.Aeson.Optics
 import Data.Attoparsec.Text
+import Data.List (isPrefixOf)
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
 import Data.Vector (Vector)
@@ -63,8 +65,13 @@ keyP =
 indexP :: Parser Int
 indexP = do
   ds <- many1 digit
-  either (\msg -> fail $ "Unable to read integer from " <> ds <> ": " <> msg) pure
-    $ readEither ds
+
+  let
+    err :: String -> Parser a
+    err msg = fail $ "Unable to read integer from " <> ds <> ": " <> msg
+
+  when ("0" `isPrefixOf` ds && length ds > 1) $ err "cannot contain leading zeros"
+  either err pure $ readEither ds
 
 pointerToText :: Pointer -> Text
 pointerToText = \case
@@ -149,9 +156,9 @@ vInsertAt n v vec = vGenerate $ V.imap shift vec <> pure (n, v)
 
 -- | Update an index in a vector
 vSetAt :: Int -> a -> Vector a -> Vector a
-vSetAt n v vec = vGenerate $ V.imap set vec
+vSetAt n v vec = vGenerate $ V.imap replace vec
  where
-  set idx a
+  replace idx a
     | idx == n = (idx, v)
     | otherwise = (idx, a)
 
