@@ -103,3 +103,14 @@ tests:
       - optics
       - path
       - vector
+
+  readme:
+    main: README.lhs
+    ghc-options: -pgmL markdown-unlit
+    dependencies:
+      - aeson
+      - aeson-pretty
+      - aeson-qq
+      - bytestring
+      - jsonpatch
+      - markdown-unlit
