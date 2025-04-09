@@ -12,7 +12,7 @@ module Data.JSON.PatchSpec
 
 import Prelude
 
-import Control.Monad (unless, when, zipWithM_)
+import Control.Monad (unless, zipWithM_)
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
   ( Config (..)
@@ -24,6 +24,7 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Data.JSON.Patch
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
+import Data.Maybe (fromMaybe)
 import GHC.Int (Int64)
 import Path
 import System.Exit (exitFailure)
@@ -35,7 +36,7 @@ data PatchTest = PatchTest
   { doc :: Value
   , patch :: Value
   , expected :: Either String Value
-  , comment :: String
+  , comment :: Maybe String
   , disabled :: Bool
   , focus :: Bool
   }
@@ -45,7 +46,7 @@ instance FromJSON PatchTest where
     doc <- o .: "doc"
     patch <- o .: "patch"
     expected <- toExpected <$> o .:? "expected" <*> o .:? "error"
-    comment <- o .:? "comment" .!= "<no comment>"
+    comment <- o .:? "comment"
     disabled <- o .:? "disabled" .!= False
     focus <- o .:? "focus" .!= False
     pure PatchTest {doc, patch, expected, comment, disabled, focus}
@@ -61,40 +62,42 @@ runPatchTests path = do
 
 runPatchTest :: HasCallStack => Int -> PatchTest -> Spec
 runPatchTest n t = do
-  let it' = if t.focus then fit else it
+  let
+    it'
+      | t.disabled = xit
+      | t.focus = fit
+      | otherwise = it
 
-  it' ("#" <> show n <> " " <> t.comment) $ do
-    when t.disabled $ pendingWith "disabled"
+    comment = fromMaybe ("test #" <> show n) t.comment
+    result = case fromJSON t.patch of
+      Error err -> Left err
+      Success patches -> applyPatches patches t.doc
 
-    let result = case fromJSON t.patch of
-          Error err -> Left err
-          Success patches -> applyPatches patches t.doc
-
-    case (result, t.expected) of
-      (Left ex, Left e) -> do
-        unless (maybe False ($ ex) $ lookup e errorsMap) $ do
-          expectationFailure
-            $ unlines
-              [ "Error " <> show e <> " not known or did not pass predicate"
-              , "Actual message: " <> show ex
-              ]
-      (Left ex, Right b) ->
+  it' comment $ case (result, t.expected) of
+    (Left ex, Left e) -> do
+      unless (maybe False ($ ex) $ lookup e errorsMap) $ do
         expectationFailure
           $ unlines
-            [ "Error: " <> ex
-            , "  Expected:\n" <> indentedPretty 7 b
-            , "  Doc:\n" <> indentedPretty 7 t.doc
-            , "  Patch:\n" <> indentedPretty 7 t.patch
+            [ "Error " <> show e <> " not known or did not pass predicate"
+            , "Actual message: " <> show ex
             ]
-      (Right a, Left e) ->
-        expectationFailure
-          $ unlines
-            [ "Expected error: " <> e
-            , "Instead got:\n" <> indentedPretty 7 a
-            , "  Doc:\n" <> indentedPretty 7 t.doc
-            , "  Patch:\n" <> indentedPretty 7 t.patch
-            ]
-      (Right a, Right b) -> a `shouldMatchJson` b
+    (Left ex, Right b) ->
+      expectationFailure
+        $ unlines
+          [ "Error: " <> ex
+          , "  Expected:\n" <> indentedPretty 7 b
+          , "  Doc:\n" <> indentedPretty 7 t.doc
+          , "  Patch:\n" <> indentedPretty 7 t.patch
+          ]
+    (Right a, Left e) ->
+      expectationFailure
+        $ unlines
+          [ "Expected error: " <> e
+          , "Instead got:\n" <> indentedPretty 7 a
+          , "  Doc:\n" <> indentedPretty 7 t.doc
+          , "  Patch:\n" <> indentedPretty 7 t.patch
+          ]
+    (Right a, Right b) -> a `shouldMatchJson` b
 
 spec :: Spec
 spec = do
