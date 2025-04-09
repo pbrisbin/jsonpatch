@@ -23,8 +23,8 @@ import Data.Attoparsec.Text
 import Data.List (isPrefixOf)
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
-import Data.Vector (Vector)
 import Data.Vector qualified as V
+import Data.Vector.Ext qualified as V
 import Optics
 import Text.Read (readEither)
 
@@ -111,7 +111,7 @@ atTokenL' t = case t of
 -- | Update an index in a 'Value' using update semantics for arrays
 nUpdater :: Int -> Value -> Maybe Value -> Value
 nUpdater n nv = \case
-  Just x | Array vec <- nv -> Array $ vSetAt n x vec
+  Just x | Array vec <- nv -> Array $ V.setAt n x vec
   v -> nInserter n nv v -- all other cases are the same
 
 atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
@@ -130,37 +130,9 @@ nInserter :: Int -> Value -> Maybe Value -> Value
 nInserter n nv = \case
   Nothing -> case nv of
     Object km -> Object $ KeyMap.delete (Key.fromString $ show n) km
-    Array vec -> Array $ vDeleteAt n vec
+    Array vec -> Array $ V.deleteAt n vec
     v -> v
   Just x -> case nv of
     Object km -> Object $ KeyMap.insert (Key.fromString $ show n) x km
-    Array vec -> Array $ vInsertAt n x vec
+    Array vec -> Array $ V.insertAt n x vec
     v -> v
-
--- | Delete from a vector and shift all later elements left
-vDeleteAt :: Int -> Vector a -> Vector a
-vDeleteAt n vec = vGenerate $ V.imapMaybe shift vec
- where
-  shift idx a
-    | idx < n = Just (idx, a)
-    | idx == n = Nothing
-    | otherwise = Just (idx - 1, a)
-
--- | Insert into a vector and shift all later elements right
-vInsertAt :: Int -> a -> Vector a -> Vector a
-vInsertAt n v vec = vGenerate $ V.imap shift vec <> pure (n, v)
- where
-  shift idx a
-    | idx >= n = (idx + 1, a)
-    | otherwise = (idx, a)
-
--- | Update an index in a vector
-vSetAt :: Int -> a -> Vector a -> Vector a
-vSetAt n v vec = vGenerate $ V.imap replace vec
- where
-  replace idx a
-    | idx == n = (idx, v)
-    | otherwise = (idx, a)
-
-vGenerate :: Vector (Int, a) -> Vector a
-vGenerate indexed = V.generate (V.length indexed) $ snd . (V.!) indexed

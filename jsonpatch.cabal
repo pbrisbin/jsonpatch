@@ -41,6 +41,7 @@ library
       Data.JSON.Patch.Apply
       Data.JSON.Patch.Type
       Data.JSON.Pointer
+      Data.Vector.Ext
   other-modules:
       Paths_jsonpatch
   hs-source-dirs:
