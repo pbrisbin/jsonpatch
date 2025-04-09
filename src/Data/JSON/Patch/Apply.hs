@@ -12,12 +12,12 @@ module Data.JSON.Patch.Apply
 
 import Prelude
 
-import Control.Monad (unless, when)
+import Control.Monad (unless, void, when)
 import Control.Monad.Except (MonadError, runExcept, throwError)
 import Control.Monad.State (MonadState, execStateT, gets, modify, put)
 import Data.Aeson
 import Data.Aeson.Optics
-import Data.Foldable (traverse_)
+import Data.Foldable (for_, traverse_)
 import Data.JSON.Patch.Type
 import Data.JSON.Pointer
 import Data.Vector (Vector)
@@ -29,14 +29,13 @@ applyPatches ps = runExcept . execStateT (traverse_ applyPatch ps)
 
 applyPatch :: (MonadError String m, MonadState Value m) => Patch -> m ()
 applyPatch = \case
-  Add op -> do
-    assertArrayBounds' op.path
-    add op.value op.path
-  Remove op -> do
-    assertArrayBounds op.path
-    remove op.path
+  Add op -> add op.value op.path
+  Remove op -> remove op.path
   Replace op -> remove op.path >> add op.value op.path
-  Move op -> flip add op.path =<< get op.from
+  Move op -> do
+    v <- get op.from
+    remove op.from
+    add v op.path
   Copy op -> flip add op.path =<< get op.from
   Test op -> do
     v <- get op.path
@@ -46,40 +45,6 @@ applyPatch = \case
         <> show v
         <> " != "
         <> show op.value
-
-assertArrayBounds
-  :: (MonadError String m, MonadState Value m)
-  => Pointer
-  -> m ()
-assertArrayBounds p = case p of
-  PointerEmpty -> pure ()
-  PointerPath _ t -> do
-    v <- get p
-    case (v, t) of
-      (Array vec, N n) ->
-        when (n >= V.length vec)
-          $ pointerError p
-          $ "index " <> show n <> " is out of bounds in " <> show vec
-      _ -> pure ()
-  PointerPathEnd _ -> pure ()
-
-assertArrayBounds'
-  :: (MonadError String m, MonadState Value m)
-  => Pointer
-  -> m ()
-assertArrayBounds' p = case p of
-  PointerEmpty -> pure ()
-  PointerPath ts t -> do
-    gets (preview $ tokensL ts) >>= \case
-      Nothing -> pure ()
-      Just v ->
-        case (v, t) of
-          (Array vec, N n) ->
-            when (n > V.length vec)
-              $ pointerError p
-              $ "index " <> show n <> " is out of bounds in " <> show vec
-          _ -> pure ()
-  PointerPathEnd _ -> pure ()
 
 get :: (MonadError String m, MonadState Value m) => Pointer -> m Value
 get = \case
@@ -94,16 +59,50 @@ get = \case
 add :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
 add v = \case
   PointerEmpty -> put v
-  PointerPath ts t -> modify $ tokensL ts % atTokenL t ?~ v
+  PointerPath ts t -> do
+    case t of
+      N n -> assertBounds (>) ts n
+      _ -> pure ()
+
+    modify $ tokensL ts % atTokenL t ?~ v
   PointerPathEnd ts -> withVector ts $ \_ ->
     modify $ tokensL ts % _Array %~ (<> pure v)
 
 remove :: (MonadError String m, MonadState Value m) => Pointer -> m ()
-remove = \case
-  PointerEmpty -> put Null -- unspecified behavior
-  PointerPath ts t -> modify $ tokensL ts % atTokenL t .~ Nothing
-  PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
-    modify $ tokensL ts % _Array .~ vs
+remove p = do
+  void $ get p -- assert removing a pointer must exist
+  case p of
+    PointerEmpty -> put Null -- unspecified behavior
+    PointerPath ts t -> do
+      case t of
+        N n -> assertBounds (>=) (ts <> [t]) n
+        _ -> pure ()
+
+      modify $ tokensL ts % atTokenL t .~ Nothing
+    PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
+      modify $ tokensL ts % _Array .~ vs
+
+assertBounds
+  :: (MonadError String m, MonadState Value m)
+  => (Int -> Int -> Bool)
+  -- ^ Validation predicate, '(>)' for adds, '(>=)' for removes
+  -> [Token]
+  -- ^ Tokens to object to validate (if an 'Array')
+  -> Int
+  -- ^ First argument to validation (e.g. index). Passed separately so it can be
+  -- used in error messages
+  -> m ()
+assertBounds p ts n = do
+  mv <- gets $ preview $ tokensL ts
+  for_ mv $ \case
+    Array vec ->
+      when (n `p` V.length vec)
+        $ tokensError ts
+        $ "index "
+          <> show n
+          <> " is out of bounds for "
+          <> show vec
+    _ -> pure ()
 
 withVector
   :: (MonadError String m, MonadState Value m)
