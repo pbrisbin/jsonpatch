@@ -97,14 +97,14 @@ tokenToText = \case
   N n -> pack $ show n
 
 tokensL :: [Token] -> AffineTraversal' Value Value
-tokensL = foldr ((%) . atTokenL') $ castOptic simple
+tokensL = foldr ((%) . tokenL) $ castOptic simple
 
-atTokenL' :: Token -> AffineTraversal' Value Value
-atTokenL' t = case t of
+tokenL :: Token -> AffineTraversal' Value Value
+tokenL t = case t of
   K k -> key k
   N n -> nth n
 
 atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
 atTokenL = \case
   K k -> atKey k
-  N n -> atNth' n
+  N n -> atNth n

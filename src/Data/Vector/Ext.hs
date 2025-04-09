@@ -1,7 +1,6 @@
 module Data.Vector.Ext
   ( deleteAt
   , insertAt
-  , setAt
   ) where
 
 import Prelude
@@ -30,17 +29,6 @@ insertAt n v vec
  where
   shift idx a
     | idx >= n = (idx + 1, a)
-    | otherwise = (idx, a)
-
--- | Update an index in a vector
-setAt :: Int -> a -> Vector a -> Vector a
-setAt n v vec
-  | n < 0 = vec
-  | n >= V.length vec = vec
-  | otherwise = generateFrom $ V.imap replace vec
- where
-  replace idx a
-    | idx == n = (idx, v)
     | otherwise = (idx, a)
 
 generateFrom :: Vector (Int, a) -> Vector a

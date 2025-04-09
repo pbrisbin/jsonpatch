@@ -35,16 +35,3 @@ spec = do
     it "ignores index out of bound" $ do
       V.insertAt (-1) 'x' input `shouldBe` input
       V.insertAt 4 'x' input `shouldBe` input
-
-  describe "setAt" $ do
-    let input = V.fromList "abcd"
-
-    it "sets an element at the given index" $ do
-      V.setAt 0 'x' input `shouldBe` V.fromList "xbcd"
-      V.setAt 1 'x' input `shouldBe` V.fromList "axcd"
-      V.setAt 2 'x' input `shouldBe` V.fromList "abxd"
-      V.setAt 3 'x' input `shouldBe` V.fromList "abcx"
-
-    it "ignores index out of bound" $ do
-      V.setAt (-1) 'x' input `shouldBe` input
-      V.setAt 4 'x' input `shouldBe` input
