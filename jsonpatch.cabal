@@ -42,6 +42,7 @@ library
       Data.JSON.Patch.Apply
       Data.JSON.Patch.Type
       Data.JSON.Pointer
+      Data.JSON.Pointer.Token
       Data.Vector.Ext
   other-modules:
       Paths_jsonpatch

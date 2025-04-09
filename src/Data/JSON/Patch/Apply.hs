@@ -20,6 +20,7 @@ import Data.Aeson.Optics
 import Data.Foldable (for_, traverse_)
 import Data.JSON.Patch.Type
 import Data.JSON.Pointer
+import Data.JSON.Pointer.Token
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 import Optics

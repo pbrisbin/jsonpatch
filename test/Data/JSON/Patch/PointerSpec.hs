@@ -5,6 +5,7 @@ module Data.JSON.Patch.PointerSpec
 import Prelude
 
 import Data.JSON.Pointer
+import Data.JSON.Pointer.Token
 import Test.Hspec
 
 spec :: Spec
