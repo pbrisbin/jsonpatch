@@ -90,17 +90,27 @@ tokenToText = \case
   N n -> pack $ show n
 
 tokensL :: [Token] -> AffineTraversal' Value Value
-tokensL = foldr ((%) . tokenL) $ castOptic simple
- where
-  -- When traversing tokens, replace missing bits with empty structures
-  tokenL t = case t of
-    K _ -> atTokenL t % non (Object mempty)
-    N _ -> atTokenL t % non (Array mempty)
+tokensL = foldr ((%) . atTokenL') $ castOptic simple
+
+-- |
+--
+-- When traversing tokens, we can't use 'aTokenL' because we need to replace
+-- missing bits with empty structures and use update semantics for 'Array's
+atTokenL' :: Token -> AffineTraversal' Value Value
+atTokenL' t = case t of
+  K _ -> atTokenL t % non (Object mempty)
+  N n -> atraversal (nMatcher n) (nUpdater n) % non (Array mempty)
+
+-- | Update an index in a 'Value' using update semantics for arrays
+nUpdater :: Int -> Value -> Maybe Value -> Value
+nUpdater n nv = \case
+  Just x | Array vec <- nv -> Array $ vSetAt n x vec
+  v -> nInserter n nv v -- all other cases are the same
 
 atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
 atTokenL = \case
   K k -> _Object % at k
-  N n -> atraversal (nMatcher n) (nUpdater n)
+  N n -> atraversal (nMatcher n) (nInserter n)
 
 nMatcher :: Int -> Value -> Either Value (Maybe Value)
 nMatcher n = \case
@@ -108,8 +118,9 @@ nMatcher n = \case
   Array vec -> Right $ vec V.!? n
   v -> Left v
 
-nUpdater :: Int -> Value -> Maybe Value -> Value
-nUpdater n nv = \case
+-- | Update an index in a 'Value' using insert semantics for arrays
+nInserter :: Int -> Value -> Maybe Value -> Value
+nInserter n nv = \case
   Nothing -> case nv of
     Object km -> Object $ KeyMap.delete (Key.fromString $ show n) km
     Array vec -> Array $ vDeleteAt n vec
@@ -119,6 +130,7 @@ nUpdater n nv = \case
     Array vec -> Array $ vInsertAt n x vec
     v -> v
 
+-- | Delete from a vector and shift all later elements left
 vDeleteAt :: Int -> Vector a -> Vector a
 vDeleteAt n vec = vGenerate $ V.imapMaybe shift vec
  where
@@ -127,11 +139,20 @@ vDeleteAt n vec = vGenerate $ V.imapMaybe shift vec
     | idx == n = Nothing
     | otherwise = Just (idx - 1, a)
 
+-- | Insert into a vector and shift all later elements right
 vInsertAt :: Int -> a -> Vector a -> Vector a
 vInsertAt n v vec = vGenerate $ V.imap shift vec <> pure (n, v)
  where
   shift idx a
     | idx >= n = (idx + 1, a)
+    | otherwise = (idx, a)
+
+-- | Update an index in a vector
+vSetAt :: Int -> a -> Vector a -> Vector a
+vSetAt n v vec = vGenerate $ V.imap set vec
+ where
+  set idx a
+    | idx == n = (idx, v)
     | otherwise = (idx, a)
 
 vGenerate :: Vector (Int, a) -> Vector a
