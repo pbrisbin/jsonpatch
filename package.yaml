@@ -101,5 +101,3 @@ tests:
       - jsonpatch
       - optics
       - path
-      - path-io
-      - text

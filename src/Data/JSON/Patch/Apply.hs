@@ -12,7 +12,7 @@ module Data.JSON.Patch.Apply
 
 import Prelude
 
-import Control.Monad (unless, void, when)
+import Control.Monad (unless, when)
 import Control.Monad.Except (MonadError, runExcept, throwError)
 import Control.Monad.State (MonadState, execStateT, gets, modify, put)
 import Data.Aeson
@@ -33,7 +33,6 @@ applyPatch = \case
     assertArrayBounds' op.path
     add op.value op.path
   Remove op -> do
-    assertPointer op.path
     assertArrayBounds op.path
     remove op.path
   Replace op -> remove op.path >> add op.value op.path
@@ -48,9 +47,6 @@ applyPatch = \case
         <> " != "
         <> show op.value
 
-assertPointer :: (MonadError String m, MonadState Value m) => Pointer -> m ()
-assertPointer p = void $ get p
-
 assertArrayBounds
   :: (MonadError String m, MonadState Value m)
   => Pointer
@@ -58,7 +54,7 @@ assertArrayBounds
 assertArrayBounds p = case p of
   PointerEmpty -> pure ()
   PointerPath _ t -> do
-    v <- get p -- we've already asserted this won't fail
+    v <- get p
     case (v, t) of
       (Array vec, N n) ->
         when (n >= V.length vec)

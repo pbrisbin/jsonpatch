@@ -87,7 +87,6 @@ test-suite spec
   other-modules:
       Data.JSON.Patch.PointerSpec
       Data.JSON.PatchSpec
-      Data.JSON.PointerSpec
       Paths_jsonpatch
   hs-source-dirs:
       test
@@ -119,8 +118,6 @@ test-suite spec
     , jsonpatch
     , optics
     , path
-    , path-io
-    , text
   default-language: GHC2021
   if impl(ghc >= 9.8)
     ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
