@@ -12,7 +12,7 @@ module Data.JSON.PatchSpec
 
 import Prelude
 
-import Control.Monad (when, zipWithM_)
+import Control.Monad (unless, when, zipWithM_)
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
   ( Config (..)
@@ -66,62 +66,35 @@ runPatchTest n t = do
   it' ("#" <> show n <> " " <> t.comment) $ do
     when t.disabled $ pendingWith "disabled"
 
-    case fromJSON t.patch of
-      Error err ->
-        case t.expected of
-          -- Failed and should have
-          Left e -> validateErrors err e
-          Right v ->
-            expectationFailure
-              $ unlines
-                [ "Patch parse error: " <> err
-                , "  Expected:\n" <> indentedPretty 7 v
-                , "  Doc:\n" <> indentedPretty 7 t.doc
-                , "  Patch:\n" <> indentedPretty 7 t.patch
-                ]
-      Success patches ->
-        case (applyPatches patches t.doc, t.expected) of
-          -- Applied, verify result
-          (Right a, Right b) -> a `shouldMatchJson` b
-          -- Applied but shouldn't have
-          (Right a, Left e) ->
-            expectationFailure
-              $ unlines
-                [ "Expected error: " <> e
-                , "Instead got:\n" <> indentedPretty 7 a
-                , "  Doc:\n" <> indentedPretty 7 t.doc
-                , "  Patch:\n" <> indentedPretty 7 t.patch
-                ]
-          -- Failed but should've applied
-          (Left ex, Right b) ->
-            expectationFailure
-              $ unlines
-                [ "Error: " <> ex
-                , "  Expected:\n" <> indentedPretty 7 b
-                , "  Doc:\n" <> indentedPretty 7 t.doc
-                , "  Patch:\n" <> indentedPretty 7 t.patch
-                ]
-          -- Failed and should have
-          (Left ex, Left e) -> validateErrors ex e
+    let result = case fromJSON t.patch of
+          Error err -> Left err
+          Success patches -> applyPatches patches t.doc
 
-validateErrors :: String -> String -> IO ()
-validateErrors actual expected = do
-  case lookup expected errorsMap of
-    Nothing ->
-      expectationFailure
-        $ unlines
-          [ "Error case not seen before"
-          , "Add the following (or similar) as a new element to errorsMap:"
-          , ", ( " <> show expected <> ", (== " <> show actual <> "))"
-          ]
-    Just p
-      | not $ p actual ->
+    case (result, t.expected) of
+      (Left ex, Left e) -> do
+        unless (maybe False ($ ex) $ lookup e errorsMap) $ do
           expectationFailure
             $ unlines
-              [ "Error " <> show expected <> " did not pass predicate"
-              , "Actual message: " <> show actual
+              [ "Error " <> show e <> " not known or did not pass predicate"
+              , "Actual message: " <> show ex
               ]
-    _ -> pure ()
+      (Left ex, Right b) ->
+        expectationFailure
+          $ unlines
+            [ "Error: " <> ex
+            , "  Expected:\n" <> indentedPretty 7 b
+            , "  Doc:\n" <> indentedPretty 7 t.doc
+            , "  Patch:\n" <> indentedPretty 7 t.patch
+            ]
+      (Right a, Left e) ->
+        expectationFailure
+          $ unlines
+            [ "Expected error: " <> e
+            , "Instead got:\n" <> indentedPretty 7 a
+            , "  Doc:\n" <> indentedPretty 7 t.doc
+            , "  Patch:\n" <> indentedPretty 7 t.patch
+            ]
+      (Right a, Right b) -> a `shouldMatchJson` b
 
 spec :: Spec
 spec = do
