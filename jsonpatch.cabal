@@ -83,6 +83,46 @@ library
   if impl(ghc >= 8.8)
     ghc-options: -fwrite-ide-info
 
+test-suite readme
+  type: exitcode-stdio-1.0
+  main-is: README.lhs
+  other-modules:
+      Paths_jsonpatch
+  default-extensions:
+      DataKinds
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      GADTs
+      LambdaCase
+      NoFieldSelectors
+      NoImplicitPrelude
+      NoMonomorphismRestriction
+      NoPostfixOperators
+      OverloadedRecordDot
+      OverloadedStrings
+      QuasiQuotes
+      TypeFamilies
+  ghc-options: -Weverything -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe -pgmL markdown-unlit
+  build-depends:
+      aeson
+    , aeson-pretty
+    , aeson-qq
+    , base <5
+    , bytestring
+    , jsonpatch
+    , markdown-unlit
+  default-language: GHC2021
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+  if impl(ghc >= 9.2)
+    ghc-options: -Wno-missing-kind-signatures
+  if impl(ghc >= 8.10)
+    ghc-options: -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+  if impl(ghc >= 8.8)
+    ghc-options: -fwrite-ide-info
+
 test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
