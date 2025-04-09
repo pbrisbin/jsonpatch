@@ -26,6 +26,7 @@ import Text.Markdown.Unlit ()
 -->
 
 ```haskell
+import Control.Exception (displayException)
 import Data.Aeson (Result(..), fromJSON)
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.QQ (aesonQQ)
@@ -51,7 +52,8 @@ main = do
     |]
 
 
-  either fail (BSL.putStr . encodePretty) $ applyPatches patch document
+  either (fail . displayException) (BSL.putStr . encodePretty)
+    $ applyPatches patch document
 ```
 
 The above program outputs:
@@ -63,7 +65,8 @@ The above program outputs:
 }
 ```
 
-The result is in `Either String`, with error messages returned as `Left` values.
+The result is in `Either PatchError`, with `displayException` available to get
+a user-friendly message.
 
 ## Quality
 

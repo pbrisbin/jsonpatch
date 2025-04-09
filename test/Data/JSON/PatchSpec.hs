@@ -12,6 +12,7 @@ module Data.JSON.PatchSpec
 
 import Prelude
 
+import Control.Exception (displayException)
 import Control.Monad (unless, zipWithM_)
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
@@ -23,6 +24,7 @@ import Data.Aeson.Encode.Pretty
 import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Data.JSON.Patch
+import Data.JSON.Patch.Error
 import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Maybe (fromMaybe)
 import GHC.Int (Int64)
@@ -70,12 +72,12 @@ runPatchTest n t = do
 
     comment = fromMaybe ("test #" <> show n) t.comment
     result = case fromJSON t.patch of
-      Error err -> Left err
+      Error err -> Left $ ParseError t.patch err
       Success patches -> applyPatches patches t.doc
 
   it' comment $ case (result, t.expected) of
     (Left ex, Left e) -> do
-      unless (maybe False ($ ex) $ lookup e errorsMap) $ do
+      unless (maybe False ($ displayException ex) $ lookup e errorsMap) $ do
         expectationFailure
           $ unlines
             [ "Error " <> show e <> " not known or did not pass predicate"
@@ -84,7 +86,7 @@ runPatchTest n t = do
     (Left ex, Right b) ->
       expectationFailure
         $ unlines
-          [ "Error: " <> ex
+          [ "Error: " <> displayException ex
           , "  Expected:\n" <> indentedPretty 7 b
           , "  Doc:\n" <> indentedPretty 7 t.doc
           , "  Patch:\n" <> indentedPretty 7 t.patch

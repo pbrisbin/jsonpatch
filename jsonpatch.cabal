@@ -40,6 +40,7 @@ library
       Data.Aeson.Optics.Ext
       Data.JSON.Patch
       Data.JSON.Patch.Apply
+      Data.JSON.Patch.Error
       Data.JSON.Patch.Type
       Data.JSON.Pointer
       Data.JSON.Pointer.Token
