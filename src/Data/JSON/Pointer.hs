@@ -8,6 +8,7 @@ module Data.JSON.Pointer
   , tokensToText
   , tokensToString
   , tokensL
+  , tokenL
   , atTokenL
   ) where
 
@@ -99,11 +100,13 @@ tokenToText = \case
 tokensL :: [Token] -> AffineTraversal' Value Value
 tokensL = foldr ((%) . tokenL) $ castOptic simple
 
+-- | Access a key or array index like 'ix'
 tokenL :: Token -> AffineTraversal' Value Value
 tokenL t = case t of
   K k -> key k
   N n -> nth n
 
+-- | Access a key or array index, but 'at'-like
 atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
 atTokenL = \case
   K k -> atKey k

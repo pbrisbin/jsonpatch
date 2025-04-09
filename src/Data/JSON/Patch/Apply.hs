@@ -50,10 +50,9 @@ get :: (MonadError String m, MonadState Value m) => Pointer -> m Value
 get = \case
   PointerEmpty -> gets id
   PointerPath ts t -> do
-    gets (preview $ tokensL ts % atTokenL t) >>= \case
+    gets (preview $ tokensL ts % tokenL t) >>= \case
       Nothing -> tokensError ts "the specified value does not exist"
-      Just Nothing -> tokensError (ts <> [t]) "the specified value does not exist"
-      Just (Just v) -> pure v
+      Just v -> pure v
   PointerPathEnd ts -> withVectorUnsnoc ts $ pure . snd
 
 add :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
@@ -62,11 +61,7 @@ add v = \case
   PointerPath ts t -> do
     -- adding to something non-existent is an error
     assertExists ts
-
-    case t of
-      N n -> assertBounds (>) ts n
-      _ -> pure ()
-
+    withN t $ assertBounds (>) ts
     modify $ tokensL ts % atTokenL t ?~ v
   PointerPathEnd ts -> withVector ts $ \_ ->
     modify $ tokensL ts % _Array %~ (<> pure v)
@@ -79,10 +74,7 @@ remove p = do
   case p of
     PointerEmpty -> put Null -- unspecified behavior
     PointerPath ts t -> do
-      case t of
-        N n -> assertBounds (>=) (ts <> [t]) n
-        _ -> pure ()
-
+      withN t $ assertBounds (>=) $ ts <> [t]
       modify $ tokensL ts % atTokenL t .~ Nothing
     PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
       modify $ tokensL ts % _Array .~ vs
@@ -138,6 +130,11 @@ withVectorUnsnoc ts f =
     Just vs -> case V.unsnoc vs of
       Nothing -> tokensError ts "the specified array is empty"
       Just tp -> f tp
+
+withN :: Applicative f => Token -> (Int -> f ()) -> f ()
+withN t f = case t of
+  N n -> f n
+  _ -> pure ()
 
 pointerError :: MonadError String m => Pointer -> String -> m a
 pointerError p msg = throwError $ pointerToString p <> ": " <> msg
