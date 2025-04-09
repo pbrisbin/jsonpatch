@@ -1,0 +1,135 @@
+cabal-version: 1.18
+
+-- This file has been generated from package.yaml by hpack version 0.37.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           jsonpatch
+version:        0.0.0.0
+synopsis:       JSON Patch parsing and application
+description:    This is a Haskell library for parsing and applying JSON Patches
+                .
+                From <https://www.json.org/>:
+                .
+                JSON Patch is a format for describing changes to a
+                [JSON](https://www.json.org/) document. It can be used to avoid sending a
+                whole document when only a part has changed. When used in combination with the
+                [HTTP PATCH method](https://datatracker.ietf.org/doc/html/rfc5789/), it allows
+                partial updates for HTTP APIs in a standards compliant way.
+                .
+                The patch documents are themselves JSON documents.
+                .
+                JSON Patch is specified in [RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902/) from the IETF.
+category:       JSON
+homepage:       https://github.com/pbrisbin/jsonpatch#readme
+bug-reports:    https://github.com/pbrisbin/jsonpatch/issues
+maintainer:     Patrick Brisbin
+build-type:     Simple
+extra-source-files:
+    tests.json
+extra-doc-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/pbrisbin/jsonpatch
+
+library
+  exposed-modules:
+      Data.Aeson.Optics.Ext
+      Data.JSON.Patch
+      Data.JSON.Patch.Apply
+      Data.JSON.Patch.Type
+      Data.JSON.Pointer
+      Data.Vector.Ext
+  other-modules:
+      Paths_jsonpatch
+  hs-source-dirs:
+      src
+  default-extensions:
+      DataKinds
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      GADTs
+      LambdaCase
+      NoFieldSelectors
+      NoImplicitPrelude
+      NoMonomorphismRestriction
+      NoPostfixOperators
+      OverloadedRecordDot
+      OverloadedStrings
+      QuasiQuotes
+      TypeFamilies
+  ghc-options: -Weverything -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe
+  build-depends:
+      aeson
+    , aeson-optics
+    , attoparsec
+    , base <5
+    , mtl
+    , optics
+    , text
+    , vector
+  default-language: GHC2021
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+  if impl(ghc >= 9.2)
+    ghc-options: -Wno-missing-kind-signatures
+  if impl(ghc >= 8.10)
+    ghc-options: -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+  if impl(ghc >= 8.8)
+    ghc-options: -fwrite-ide-info
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Data.Aeson.Optics.ExtSpec
+      Data.JSON.Patch.PointerSpec
+      Data.JSON.PatchSpec
+      Data.Vector.ExtSpec
+      Paths_jsonpatch
+  hs-source-dirs:
+      test
+  default-extensions:
+      DataKinds
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DuplicateRecordFields
+      GADTs
+      LambdaCase
+      NoFieldSelectors
+      NoImplicitPrelude
+      NoMonomorphismRestriction
+      NoPostfixOperators
+      OverloadedRecordDot
+      OverloadedStrings
+      QuasiQuotes
+      TypeFamilies
+  ghc-options: -Weverything -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-missing-exported-signatures -Wno-missing-import-lists -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-safe -Wno-unsafe -threaded -rtsopts "-with-rtsopts=-N"
+  build-depends:
+      aeson
+    , aeson-optics
+    , aeson-pretty
+    , aeson-qq
+    , base <5
+    , bytestring
+    , hspec
+    , hspec-expectations-json
+    , jsonpatch
+    , optics
+    , path
+    , vector
+  default-language: GHC2021
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-missing-role-annotations -Wno-missing-poly-kind-signatures
+  if impl(ghc >= 9.2)
+    ghc-options: -Wno-missing-kind-signatures
+  if impl(ghc >= 8.10)
+    ghc-options: -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+  if impl(ghc >= 8.8)
+    ghc-options: -fwrite-ide-info
