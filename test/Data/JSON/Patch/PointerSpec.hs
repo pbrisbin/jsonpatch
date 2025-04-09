@@ -4,9 +4,7 @@ module Data.JSON.Patch.PointerSpec
 
 import Prelude
 
-import Data.Aeson.QQ
 import Data.JSON.Pointer
-import Optics
 import Test.Hspec
 
 spec :: Spec
@@ -41,12 +39,3 @@ spec = do
                 , N 1
                 ]
             )
-
-  describe "atTokenL" $ do
-    it "deleting nested within arrays" $ do
-      let
-        input = [aesonQQ|{ "baz": [{"boo": "net" }] }|]
-        optic = tokensL [K "baz", N 0] % atTokenL (K "boo")
-        updated = input & optic .~ Nothing
-
-      updated `shouldBe` [aesonQQ|{ "baz": [{}] }|]

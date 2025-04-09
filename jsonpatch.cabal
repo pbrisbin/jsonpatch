@@ -37,6 +37,7 @@ source-repository head
 
 library
   exposed-modules:
+      Data.Aeson.Optics.Ext
       Data.JSON.Patch
       Data.JSON.Patch.Apply
       Data.JSON.Patch.Type
@@ -111,13 +112,11 @@ test-suite spec
   build-depends:
       aeson
     , aeson-pretty
-    , aeson-qq
     , base <5
     , bytestring
     , hspec
     , hspec-expectations-json
     , jsonpatch
-    , optics
     , path
   default-language: GHC2021
   if impl(ghc >= 9.8)

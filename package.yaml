@@ -94,10 +94,8 @@ tests:
     dependencies:
       - aeson
       - aeson-pretty
-      - aeson-qq
       - bytestring
       - hspec
       - hspec-expectations-json
       - jsonpatch
-      - optics
       - path
