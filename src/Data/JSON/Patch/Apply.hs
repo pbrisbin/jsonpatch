@@ -12,7 +12,7 @@ module Data.JSON.Patch.Apply
 
 import Prelude
 
-import Control.Monad (unless)
+import Control.Monad (unless, void, when)
 import Control.Monad.Except (MonadError, runExcept, throwError)
 import Control.Monad.State (MonadState, execStateT, gets, modify, put)
 import Data.Aeson
@@ -29,10 +29,15 @@ applyPatches ps = runExcept . execStateT (traverse_ applyPatch ps)
 
 applyPatch :: (MonadError String m, MonadState Value m) => Patch -> m ()
 applyPatch = \case
-  Add op -> add op.value op.path
-  Remove op -> remove op.path
-  Replace op -> replace op.value op.path
-  Move op -> flip replace op.path =<< get op.from
+  Add op -> do
+    assertArrayBounds' op.path
+    add op.value op.path
+  Remove op -> do
+    assertPointer op.path
+    assertArrayBounds op.path
+    remove op.path
+  Replace op -> remove op.path >> add op.value op.path
+  Move op -> flip add op.path =<< get op.from
   Copy op -> flip add op.path =<< get op.from
   Test op -> do
     v <- get op.path
@@ -42,6 +47,43 @@ applyPatch = \case
         <> show v
         <> " != "
         <> show op.value
+
+assertPointer :: (MonadError String m, MonadState Value m) => Pointer -> m ()
+assertPointer p = void $ get p
+
+assertArrayBounds
+  :: (MonadError String m, MonadState Value m)
+  => Pointer
+  -> m ()
+assertArrayBounds p = case p of
+  PointerEmpty -> pure ()
+  PointerPath _ t -> do
+    v <- get p -- we've already asserted this won't fail
+    case (v, t) of
+      (Array vec, N n) ->
+        when (n >= V.length vec)
+          $ pointerError p
+          $ "index " <> show n <> " is out of bounds in " <> show vec
+      _ -> pure ()
+  PointerPathEnd _ -> pure ()
+
+assertArrayBounds'
+  :: (MonadError String m, MonadState Value m)
+  => Pointer
+  -> m ()
+assertArrayBounds' p = case p of
+  PointerEmpty -> pure ()
+  PointerPath ts t -> do
+    gets (preview $ tokensL ts) >>= \case
+      Nothing -> pure ()
+      Just v ->
+        case (v, t) of
+          (Array vec, N n) ->
+            when (n > V.length vec)
+              $ pointerError p
+              $ "index " <> show n <> " is out of bounds in " <> show vec
+          _ -> pure ()
+  PointerPathEnd _ -> pure ()
 
 get :: (MonadError String m, MonadState Value m) => Pointer -> m Value
 get = \case
@@ -66,9 +108,6 @@ remove = \case
   PointerPath ts t -> modify $ tokensL ts % atTokenL t .~ Nothing
   PointerPathEnd ts -> withVectorUnsnoc ts $ \(vs, _) ->
     modify $ tokensL ts % _Array .~ vs
-
-replace :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
-replace v p = remove p >> add v p
 
 withVector
   :: (MonadError String m, MonadState Value m)
