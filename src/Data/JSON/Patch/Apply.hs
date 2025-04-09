@@ -53,40 +53,63 @@ get = \case
     gets (preview $ tokensL ts % tokenL t) >>= \case
       Nothing -> tokensError ts "the specified value does not exist"
       Just v -> pure v
-  PointerPathEnd ts -> assertArrayUnsnoc ts $ pure . snd
+  PointerPathEnd ts -> snd <$> assertArrayUnsnoc ts
 
 add :: (MonadError String m, MonadState Value m) => Value -> Pointer -> m ()
 add v = \case
   PointerEmpty -> put v
   PointerPath ts t -> do
-    -- adding to something non-existent is an error
-    assertExists ts
-    -- adding outside of bounds is an error
-    withN t $ assertBounds (>) ts
+    validateAdd ts t
     modify $ tokensL ts % atTokenL t ?~ v
-  PointerPathEnd ts -> assertArray ts $ \_ ->
+  PointerPathEnd ts -> do
+    void $ assertArray ts
     modify $ tokensL ts % _Array %~ (<> pure v)
 
+validateAdd
+  :: (MonadError String m, MonadState Value m)
+  => [Token]
+  -> Token
+  -> m ()
+validateAdd ts t = do
+  -- adding to something non-existent is an error
+  target <- assertExists ts
+  -- object operation on non-object
+  withK t $ \_ -> assertObject ts target
+  -- adding outside of bounds is an error
+  withN t $ assertBounds (>) ts
+
 remove :: (MonadError String m, MonadState Value m) => Pointer -> m ()
-remove p = do
-  -- removing something non-existent is an error
-  void $ get p
+remove = \case
+  PointerEmpty -> put Null -- unspecified behavior
+  PointerPath ts t -> do
+    validateRemove ts t
+    modify $ tokensL ts % atTokenL t .~ Nothing
+  PointerPathEnd ts -> do
+    (vs, _) <- assertArrayUnsnoc ts
+    modify $ tokensL ts % _Array .~ vs
 
-  case p of
-    PointerEmpty -> put Null -- unspecified behavior
-    PointerPath ts t -> do
-      -- removing outside of bounds is an error
-      withN t $ assertBounds (>=) $ ts <> [t]
-      modify $ tokensL ts % atTokenL t .~ Nothing
-    PointerPathEnd ts -> assertArrayUnsnoc ts $ \(vs, _) ->
-      modify $ tokensL ts % _Array .~ vs
+validateRemove
+  :: (MonadError String m, MonadState Value m)
+  => [Token]
+  -> Token
+  -> m ()
+validateRemove ts t = do
+  -- removing something non-existent
+  void $ assertExists $ ts <> [t]
+  -- removing outside of bounds
+  withN t $ assertBounds (>=) $ ts <> [t]
 
-assertExists :: (MonadError String m, MonadState Value m) => [Token] -> m ()
+assertExists :: (MonadError String m, MonadState Value m) => [Token] -> m Value
 assertExists ts = do
   mv <- gets $ preview $ tokensL ts
   case mv of
     Nothing -> tokensError ts "the specified value doesn't exist"
-    Just {} -> pure ()
+    Just v -> pure v
+
+assertObject :: MonadError String m => [Token] -> Value -> m ()
+assertObject ts = \case
+  Object {} -> pure ()
+  _ -> tokensError ts "Object operation on non-object"
 
 assertBounds
   :: (MonadError String m, MonadState Value m)
@@ -114,24 +137,27 @@ assertBounds p ts n = do
 assertArray
   :: (MonadError String m, MonadState Value m)
   => [Token]
-  -> (Vector Value -> m a)
-  -> m a
-assertArray ts f =
+  -> m (Vector Value)
+assertArray ts =
   gets (preview $ tokensL ts % _Array) >>= \case
     Nothing -> tokensError ts "the specified value doesn't exist or is not an array"
-    Just vs -> f vs
+    Just vs -> pure vs
 
 assertArrayUnsnoc
   :: (MonadError String m, MonadState Value m)
   => [Token]
-  -> ((Vector Value, Value) -> m a)
-  -> m a
-assertArrayUnsnoc ts f =
+  -> m (Vector Value, Value)
+assertArrayUnsnoc ts =
   gets (preview $ tokensL ts % _Array) >>= \case
     Nothing -> tokensError ts "the specified value doesn't exist or is not an array"
     Just vs -> case V.unsnoc vs of
       Nothing -> tokensError ts "the specified array is empty"
-      Just tp -> f tp
+      Just tp -> pure tp
+
+withK :: Applicative f => Token -> (Key -> f ()) -> f ()
+withK t f = case t of
+  K k -> f k
+  _ -> pure ()
 
 withN :: Applicative f => Token -> (Int -> f ()) -> f ()
 withN t f = case t of

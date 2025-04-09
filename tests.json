@@ -457,8 +457,7 @@
     ],
     "expected": {
       "1e0": "foo"
-    },
-    "disabled": true
+    }
   },
   {
     "comment": "test with bad number should fail",
@@ -487,8 +486,7 @@
         "value": 42
       }
     ],
-    "error": "Object operation on array target",
-    "disabled": true
+    "error": "Object operation on array target"
   },
   {
     "doc": [
@@ -756,8 +754,7 @@
         "value": false
       }
     ],
-    "error": "replace op should fail with missing parent key",
-    "disabled": true
+    "error": "replace op should fail with missing parent key"
   },
   {
     "comment": "spurious patch properties",
