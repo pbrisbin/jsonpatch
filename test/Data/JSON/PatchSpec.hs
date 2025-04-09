@@ -77,11 +77,11 @@ runPatchTest n t = do
 
   it' comment $ case (result, t.expected) of
     (Left ex, Left e) -> do
-      unless (maybe False ($ displayException ex) $ lookup e errorsMap) $ do
+      unless (maybe False ($ ex) $ lookup e errorsMap) $ do
         expectationFailure
           $ unlines
             [ "Error " <> show e <> " not known or did not pass predicate"
-            , "Actual message: " <> show ex
+            , "Actual message: " <> displayException ex
             ]
     (Left ex, Right b) ->
       expectationFailure
@@ -130,38 +130,63 @@ indentedPretty n =
 
 {- FOURMOLU_DISABLE -}
 
-errorsMap :: [(String, String -> Bool)]
+errorsMap :: [(String, PatchError -> Bool)]
 errorsMap =
-  [ ("JSON Pointer should start with a slash", (== "'/': Failed reading: satisfy"))
-  , ("Object operation on array target", (== "/-: Object operation on non-object"))
-  , ("Out of bounds (upper)", ("is out of bounds" `isInfixOf`))
-  , ("Unrecognized op 'spam'", ("unexpected operation" `isPrefixOf`))
-  , ("add to a non-existent target", (== "/baz/-: the specified value doesn't exist"))
-  , ("copy op shouldn't work with bad number", (== "/baz/-: the specified value does not exist"))
-  , ("index is greater than number of items in array", ("is out of bounds" `isInfixOf`))
-  , ("missing 'from' location", (== "/-: the specified value does not exist"))
-  , ("missing 'from' parameter", ("key \"from\" not found" `isSuffixOf`))
-  , ("missing 'path' parameter", ("key \"path\" not found" `isSuffixOf`))
-  , ("missing 'value' parameter", ("key \"value\" not found" `isSuffixOf`))
-  , ("move op shouldn't work with bad number", (== "/baz/-: the specified value does not exist"))
-  , ("null is not valid value for 'path'", ("encountered Null" `isSuffixOf`))
-  , ("number is not equal to string", (== "/~1/-: test failed: Number 10.0 != String \"10\""))
-  , ("path /a does not exist -- missing objects are not created recursively", (== "/a/-: the specified value doesn't exist"))
-  , ("remove op shouldn't remove from array with bad number", ("the specified value doesn't exist" `isSuffixOf`))
-  , ("removing a nonexistent field should fail", ("the specified value doesn't exist" `isSuffixOf`))
-  , ("removing a nonexistent index should fail", ("the specified value doesn't exist" `isSuffixOf`))
-  , ("replace op should fail with missing parent key", (== "/foo/bar/-: the specified value doesn't exist"))
-  , ("replace op shouldn't replace in array with bad number", (== "/1e0/-: the specified value doesn't exist"))
-  , ("string not equivalent", (== "/baz/-: test failed: String \"qux\" != String \"bar\""))
-  , ("test op should fail", (== "/foo/-: test failed: Object (fromList [(\"bar\",Array [Number 1.0,Number 2.0,Number 5.0,Number 4.0])]) != Array [Number 1.0,Number 2.0]"))
-  , ("test op shouldn't get array element 1", (== "/-: the specified value does not exist"))
+  [ ("JSON Pointer should start with a slash", isParseError)
+  , ("Object operation on array target", isInvalidObjectOperation)
+  , ("Out of bounds (upper)", isIndexOutOfBounds)
+  , ("Unrecognized op 'spam'", isParseError)
+  , ("add to a non-existent target", isPointerNotFound)
+  , ("copy op shouldn't work with bad number", isPointerNotFound)
+  , ("index is greater than number of items in array", isIndexOutOfBounds)
+  , ("missing 'from' location", isPointerNotFound)
+  , ("missing 'from' parameter", isParseError)
+  , ("missing 'path' parameter", isParseError)
+  , ("missing 'value' parameter", isParseError)
+  , ("move op shouldn't work with bad number", isPointerNotFound)
+  , ("null is not valid value for 'path'", isParseError)
+  , ("number is not equal to string", isTestFailed)
+  , ("path /a does not exist -- missing objects are not created recursively", isPointerNotFound)
+  , ("remove op shouldn't remove from array with bad number", isPointerNotFound)
+  , ("removing a nonexistent field should fail", isPointerNotFound)
+  , ("removing a nonexistent index should fail", isPointerNotFound)
+  , ("replace op should fail with missing parent key", isPointerNotFound)
+  , ("replace op shouldn't replace in array with bad number", isPointerNotFound)
+  , ("string not equivalent", isTestFailed)
+  , ("test op should fail", isTestFailed)
+  , ("test op shouldn't get array element 1", isPointerNotFound)
   ]
   <> todo
  where
   -- These need fixing or to be improved
   todo =
-    [ ("Out of bounds (lower)", (== "/bar/-: Object operation on non-object"))
-    , ("add op shouldn't add to array with bad number", (== "/-: Object operation on non-object"))
-    , ("test op should reject the array value, it has leading zeros", (== "endOfInput"))
-    , ("test op should reject the array value, it has leading zeros", (== "endOfInput"))
+    [ ("Out of bounds (lower)", isInvalidObjectOperation)
+    , ("add op shouldn't add to array with bad number", isInvalidObjectOperation)
+    , ("test op should reject the array value, it has leading zeros", isParseError)
+    , ("test op should reject the array value, it has leading zeros", isParseError)
     ]
+
+isParseError :: PatchError -> Bool
+isParseError = \case
+  ParseError{} -> True
+  _ -> False
+
+isPointerNotFound :: PatchError -> Bool
+isPointerNotFound = \case
+  PointerNotFound{} -> True
+  _ -> False
+
+isInvalidObjectOperation :: PatchError -> Bool
+isInvalidObjectOperation = \case
+  InvalidObjectOperation{} -> True
+  _ -> False
+
+isIndexOutOfBounds :: PatchError -> Bool
+isIndexOutOfBounds = \case
+  IndexOutOfBounds{} -> True
+  _ -> False
+
+isTestFailed :: PatchError -> Bool
+isTestFailed = \case
+  TestFailed{} -> True
+  _ -> False

@@ -49,7 +49,7 @@ get = \case
   PointerEmpty -> gets id
   PointerPath ts t -> do
     gets (preview $ tokensL ts % tokenL t) >>= \case
-      Nothing -> throwError $ PointerNotFound ts Nothing
+      Nothing -> throwError $ PointerNotFound (ts <> [t]) Nothing
       Just v -> pure v
   PointerPathEnd ts -> snd <$> assertArrayUnsnoc ts
 
