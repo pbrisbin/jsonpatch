@@ -25,7 +25,6 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.ByteString.Lazy.Char8 qualified as BSL8
 import Data.JSON.Patch
 import Data.JSON.Patch.Error
-import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Maybe (fromMaybe)
 import GHC.Int (Int64)
 import Path
@@ -128,14 +127,14 @@ indentedPretty n =
   indent = BSL8.replicate n ' '
   config = defConfig {confIndent = Spaces 2}
 
-{- FOURMOLU_DISABLE -}
-
 errorsMap :: [(String, PatchError -> Bool)]
 errorsMap =
   [ ("JSON Pointer should start with a slash", isParseError)
   , ("Object operation on array target", isInvalidObjectOperation)
+  , ("Out of bounds (lower)", isIndexOutOfBounds)
   , ("Out of bounds (upper)", isIndexOutOfBounds)
   , ("Unrecognized op 'spam'", isParseError)
+  , ("add op shouldn't add to array with bad number", isInvalidObjectOperation)
   , ("add to a non-existent target", isPointerNotFound)
   , ("copy op shouldn't work with bad number", isPointerNotFound)
   , ("index is greater than number of items in array", isIndexOutOfBounds)
@@ -146,7 +145,10 @@ errorsMap =
   , ("move op shouldn't work with bad number", isPointerNotFound)
   , ("null is not valid value for 'path'", isParseError)
   , ("number is not equal to string", isTestFailed)
-  , ("path /a does not exist -- missing objects are not created recursively", isPointerNotFound)
+  ,
+    ( "path /a does not exist -- missing objects are not created recursively"
+    , isPointerNotFound
+    )
   , ("remove op shouldn't remove from array with bad number", isPointerNotFound)
   , ("removing a nonexistent field should fail", isPointerNotFound)
   , ("removing a nonexistent index should fail", isPointerNotFound)
@@ -154,39 +156,32 @@ errorsMap =
   , ("replace op shouldn't replace in array with bad number", isPointerNotFound)
   , ("string not equivalent", isTestFailed)
   , ("test op should fail", isTestFailed)
+  , ("test op should reject the array value, it has leading zeros", isParseError)
+  , ("test op should reject the array value, it has leading zeros", isParseError)
   , ("test op shouldn't get array element 1", isPointerNotFound)
   ]
-  <> todo
- where
-  -- These need fixing or to be improved
-  todo =
-    [ ("Out of bounds (lower)", isInvalidObjectOperation)
-    , ("add op shouldn't add to array with bad number", isInvalidObjectOperation)
-    , ("test op should reject the array value, it has leading zeros", isParseError)
-    , ("test op should reject the array value, it has leading zeros", isParseError)
-    ]
 
 isParseError :: PatchError -> Bool
 isParseError = \case
-  ParseError{} -> True
+  ParseError {} -> True
   _ -> False
 
 isPointerNotFound :: PatchError -> Bool
 isPointerNotFound = \case
-  PointerNotFound{} -> True
+  PointerNotFound {} -> True
   _ -> False
 
 isInvalidObjectOperation :: PatchError -> Bool
 isInvalidObjectOperation = \case
-  InvalidObjectOperation{} -> True
+  InvalidObjectOperation {} -> True
   _ -> False
 
 isIndexOutOfBounds :: PatchError -> Bool
 isIndexOutOfBounds = \case
-  IndexOutOfBounds{} -> True
+  IndexOutOfBounds {} -> True
   _ -> False
 
 isTestFailed :: PatchError -> Bool
 isTestFailed = \case
-  TestFailed{} -> True
+  TestFailed {} -> True
   _ -> False

@@ -1,3 +1,11 @@
+-- |
+--
+-- Module      : Data.JSON.Patch.PointerSpec
+-- Copyright   : (c) 2025 Patrick Brisbin
+-- License     : AGPL-3
+-- Maintainer  : pbrisbin@gmail.com
+-- Stability   : experimental
+-- Portability : POSIX
 module Data.JSON.Patch.PointerSpec
   ( spec
   ) where

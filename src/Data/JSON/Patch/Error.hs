@@ -1,3 +1,11 @@
+-- |
+--
+-- Module      : Data.JSON.Patch.Error
+-- Copyright   : (c) 2025 Patrick Brisbin
+-- License     : AGPL-3
+-- Maintainer  : pbrisbin@gmail.com
+-- Stability   : experimental
+-- Portability : POSIX
 module Data.JSON.Patch.Error
   ( PatchError (..)
   ) where
@@ -15,6 +23,7 @@ data PatchError
   = ParseError Value String
   | PointerNotFound [Token] (Maybe String)
   | InvalidObjectOperation [Token] Value
+  | InvalidArrayOperation [Token] Value
   | IndexOutOfBounds [Token] Int (Vector Value)
   | EmptyArray [Token]
   | TestFailed Pointer Value Value
@@ -31,8 +40,16 @@ instance Exception PatchError where
         <> tokensToString ts
         <> " does not exist"
         <> maybe "" (" or is not " <>) mType
-    InvalidObjectOperation ts _v ->
-      "Cannot perform object operation on non-object at " <> tokensToString ts
+    InvalidObjectOperation ts v ->
+      "Cannot perform object operation on non-object at "
+        <> tokensToString ts
+        <> ": "
+        <> show v
+    InvalidArrayOperation ts v ->
+      "Cannot perform array operation on non-array at "
+        <> tokensToString ts
+        <> ": "
+        <> show v
     IndexOutOfBounds ts n vec ->
       "Index "
         <> show n
