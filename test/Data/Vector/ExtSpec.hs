@@ -11,50 +11,40 @@ import Test.Hspec
 spec :: Spec
 spec = do
   describe "deleteAt" $ do
-    it "deletes an element, shifting later elements left" $ do
-      let
-        input = V.fromList ['a', 'b', 'c', 'd']
-        expected = V.fromList ['a', 'c', 'd']
+    let input = V.fromList "abcd"
 
-      V.deleteAt 1 input `shouldBe` expected
+    it "deletes an element, shifting later elements left" $ do
+      V.deleteAt 0 input `shouldBe` V.fromList "bcd"
+      V.deleteAt 1 input `shouldBe` V.fromList "acd"
+      V.deleteAt 2 input `shouldBe` V.fromList "abd"
+      V.deleteAt 3 input `shouldBe` V.fromList "abc"
 
     it "ignores index out of bound" $ do
-      let input = V.fromList ['a', 'b', 'c', 'd']
       V.deleteAt (-1) input `shouldBe` input
       V.deleteAt 4 input `shouldBe` input
-      V.deleteAt 7 input `shouldBe` input
 
   describe "insertAt" $ do
+    let input = V.fromList "abc"
+
     it "inserts an element, shifting later elements right" $ do
-      let
-        input = V.fromList ['a', 'c', 'd']
-        expected = V.fromList ['a', 'b', 'c', 'd']
-
-      V.insertAt 1 'b' input `shouldBe` expected
-
-    it "inserts an element at the end by using last index" $ do
-      let
-        input = V.fromList ['a', 'b', 'c']
-        expected = V.fromList ['a', 'b', 'c', 'd']
-
-      V.insertAt 3 'd' input `shouldBe` expected
+      V.insertAt 0 'x' input `shouldBe` V.fromList "xabc"
+      V.insertAt 1 'x' input `shouldBe` V.fromList "axbc"
+      V.insertAt 2 'x' input `shouldBe` V.fromList "abxc"
+      V.insertAt 3 'x' input `shouldBe` V.fromList "abcx"
 
     it "ignores index out of bound" $ do
-      let input = V.fromList ['a', 'c', 'd']
-      V.insertAt (-1) 'b' input `shouldBe` input
-      V.insertAt 4 'd' input `shouldBe` input
-      V.insertAt 7 'b' input `shouldBe` input
+      V.insertAt (-1) 'x' input `shouldBe` input
+      V.insertAt 4 'x' input `shouldBe` input
 
   describe "setAt" $ do
-    it "sets an element at the given index" $ do
-      let
-        input = V.fromList ['a', 'b', 'c', 'd']
-        expected = V.fromList ['a', 'x', 'c', 'd']
+    let input = V.fromList "abcd"
 
-      V.setAt 1 'x' input `shouldBe` expected
+    it "sets an element at the given index" $ do
+      V.setAt 0 'x' input `shouldBe` V.fromList "xbcd"
+      V.setAt 1 'x' input `shouldBe` V.fromList "axcd"
+      V.setAt 2 'x' input `shouldBe` V.fromList "abxd"
+      V.setAt 3 'x' input `shouldBe` V.fromList "abcx"
 
     it "ignores index out of bound" $ do
-      let input = V.fromList ['a', 'b', 'c', 'd']
       V.setAt (-1) 'x' input `shouldBe` input
       V.setAt 4 'x' input `shouldBe` input
-      V.setAt 7 'x' input `shouldBe` input
