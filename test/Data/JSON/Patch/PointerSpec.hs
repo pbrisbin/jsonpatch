@@ -39,3 +39,6 @@ spec = do
                 , N 1
                 ]
             )
+
+      it "handles implementation-specific numeric parsing" $ do
+        pointerFromText "/1e0" `shouldBe` Right (PointerPath [] $ K "1e0")

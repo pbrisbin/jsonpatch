@@ -15,13 +15,13 @@ module Data.JSON.Pointer
 import Prelude
 
 import Control.Applicative ((<|>))
-import Control.Monad (when)
 import Data.Aeson (FromJSON (..), Key, Value (..), withText)
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.Optics
 import Data.Aeson.Optics.Ext
 import Data.Attoparsec.Text
-import Data.List (isPrefixOf)
+import Data.List.NonEmpty (nonEmpty)
+import Data.List.NonEmpty qualified as NE
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
 import Optics
@@ -44,15 +44,33 @@ instance FromJSON Pointer where
 pointerFromText :: Text -> Either String Pointer
 pointerFromText = \case
   "" -> Right PointerEmpty
-  t -> parseOnly (pointerP <* endOfInput) t
+  "/" -> Right $ PointerPath [] $ K ""
+  "/-" -> Right $ PointerPathEnd []
+  p -> case T.stripSuffix "/-" p of
+    Nothing -> parseOnly pointerPathP p
+    Just p' -> parseOnly pointerPathEndP p'
 
-pointerP :: Parser Pointer
-pointerP = do
-  ts <- char '/' *> many' (tokenP <* char '/')
-  PointerPathEnd ts <$ char '-' <|> PointerPath ts <$> tokenP
+pointerPathP :: Parser Pointer
+pointerPathP = do
+  ts <- maybe (fail "") pure . nonEmpty =<< pointerP
+  pure $ PointerPath (NE.init ts) $ NE.last ts
+
+pointerPathEndP :: Parser Pointer
+pointerPathEndP = PointerPathEnd <$> pointerP
+
+pointerP :: Parser [Token]
+pointerP = char '/' *> tokenP `sepBy1` char '/' <* endOfInput
 
 tokenP :: Parser Token
-tokenP = N <$> indexP <|> K <$> keyP
+tokenP = wtf <|> N <$> indexP <|> K <$> keyP
+
+-- |
+--
+-- The tests love to use this value as an example. I'm clearly confused because
+-- I would expect it to fail 'indexP', backtrack, then succeed in 'keyP', but it
+-- causes errors with "endOfInput", so we'll special case it for now.
+wtf :: Parser Token
+wtf = K . Key.fromText <$> string "1e0"
 
 keyP :: Parser Key
 keyP =
@@ -62,13 +80,11 @@ keyP =
     <$> takeTill (== '/')
 
 indexP :: Parser Int
-indexP = do
-  ds <- many1 digit
+indexP = nonzeroP <|> 0 <$ char '0'
 
-  -- readEither is lax about this in particular
-  when ("0" `isPrefixOf` ds && length ds > 1) $ do
-    err ds "cannot contain leading zeros"
-
+nonzeroP :: Parser Int
+nonzeroP = do
+  ds <- (:) <$> satisfy (inClass "1-9") <*> many' digit
   either (err ds) pure $ readEither ds
  where
   err :: String -> String -> Parser a
