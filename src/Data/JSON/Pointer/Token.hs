@@ -14,15 +14,13 @@ module Data.JSON.Pointer.Token
   , atTokenL
   ) where
 
-import Prelude
+import Data.JSON.Patch.Prelude
 
 import Data.Aeson (Key, Value (..))
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.Optics (key, nth)
 import Data.Aeson.Optics.Ext
-import Data.Bifunctor (first)
 import Data.Char (isDigit)
-import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
 import Optics.Core
 import Text.Read (readEither)

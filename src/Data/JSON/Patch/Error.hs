@@ -10,12 +10,10 @@ module Data.JSON.Patch.Error
   ( PatchError (..)
   ) where
 
-import Prelude
+import Data.JSON.Patch.Prelude
 
-import Control.Exception (Exception (..))
 import Data.Aeson (Value)
 import Data.JSON.Pointer
-import Data.Vector (Vector)
 import Data.Vector qualified as V
 
 data PatchError
