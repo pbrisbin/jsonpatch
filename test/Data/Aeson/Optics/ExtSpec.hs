@@ -49,7 +49,7 @@ spec = do
       input & atNth 2 .~ Nothing & (`shouldBe` [aesonQQ| ["a", "b"] |])
       input & atNth 3 .~ Nothing & (`shouldBe` input)
 
-    context "targeting an Object" $ do
+    context "Objects behave like atKey" $ do
       let input = [aesonQQ| {"0":"a", "1":"b", "2":"c"} |]
 
       for_ [-1 .. 3] $ \n -> do
@@ -59,13 +59,9 @@ spec = do
           add l = input & l ?~ "x"
           remove l = input & l .~ Nothing
 
-        it ("indexes like atKey for " <> show n) $ do
+        it ("test index " <> show n) $ do
           index (atNth n) `shouldBe` index (atKey k)
-
-        it ("adds like atKey for " <> show n) $ do
           add (atNth n) `shouldBe` add (atKey k)
-
-        it ("removes like atKey for " <> show n) $ do
           remove (atNth n) `shouldBe` remove (atKey k)
 
   describe "atEnd" $ do
