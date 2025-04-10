@@ -2,6 +2,8 @@ name: jsonpatch
 version: 0.0.0.0
 maintainer: Patrick Brisbin
 category: JSON
+license: AGPL-3
+license-file: COPYING
 github: pbrisbin/jsonpatch
 synopsis: JSON Patch parsing and application
 description: |

@@ -24,6 +24,8 @@ category:       JSON
 homepage:       https://github.com/pbrisbin/jsonpatch#readme
 bug-reports:    https://github.com/pbrisbin/jsonpatch/issues
 maintainer:     Patrick Brisbin
+license:        AGPL-3
+license-file:   COPYING
 build-type:     Simple
 extra-source-files:
     tests.json
