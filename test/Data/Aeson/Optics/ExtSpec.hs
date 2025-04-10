@@ -67,3 +67,24 @@ spec = do
 
         it ("removes like atKey for " <> show n) $ do
           remove (atNth n) `shouldBe` remove (atKey k)
+
+  describe "atEnd" $ do
+    it "always indexes as Nothing" $ do
+      let input = [aesonQQ| ["a", "b"] |]
+
+      input ^? atEnd % _Just `shouldBe` Nothing
+
+    it "allows appending to an array" $ do
+      let input = [aesonQQ| ["a", "b"] |]
+
+      input & atEnd ?~ "x" & (`shouldBe` [aesonQQ| ["a", "b", "x"] |])
+
+    it "cannot remove the non-existent index" $ do
+      let input = [aesonQQ| ["a", "b"] |]
+
+      input & atEnd .~ Nothing & (`shouldBe` input)
+
+    it "leaves other types alone" $ do
+      let input = [aesonQQ| {"a": "b"} |]
+
+      input & atEnd ?~ "x" & (`shouldBe` input)

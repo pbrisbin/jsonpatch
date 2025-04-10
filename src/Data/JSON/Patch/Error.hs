@@ -15,17 +15,16 @@ import Prelude
 import Control.Exception (Exception (..))
 import Data.Aeson (Value)
 import Data.JSON.Pointer
-import Data.JSON.Pointer.Token
 import Data.Vector (Vector)
 import Data.Vector qualified as V
 
 data PatchError
   = ParseError Value String
-  | PointerNotFound [Token] (Maybe String)
-  | InvalidObjectOperation [Token] Value
-  | InvalidArrayOperation [Token] Value
-  | IndexOutOfBounds [Token] Int (Vector Value)
-  | EmptyArray [Token]
+  | PointerNotFound Pointer (Maybe String)
+  | InvalidObjectOperation Pointer Value
+  | InvalidArrayOperation Pointer Value
+  | IndexOutOfBounds Pointer Int (Vector Value)
+  | EmptyArray Pointer
   | TestFailed Pointer Value Value
   deriving stock (Show)
 
@@ -37,17 +36,17 @@ instance Exception PatchError where
         <> ("\n  input: " <> show v)
     PointerNotFound ts mType ->
       "Path "
-        <> tokensToString ts
+        <> pointerToString ts
         <> " does not exist"
         <> maybe "" (" or is not " <>) mType
     InvalidObjectOperation ts v ->
       "Cannot perform object operation on non-object at "
-        <> tokensToString ts
+        <> pointerToString ts
         <> ": "
         <> show v
     InvalidArrayOperation ts v ->
       "Cannot perform array operation on non-array at "
-        <> tokensToString ts
+        <> pointerToString ts
         <> ": "
         <> show v
     IndexOutOfBounds ts n vec ->
@@ -56,9 +55,9 @@ instance Exception PatchError where
         <> " is out of bounds for vector of length "
         <> show (V.length vec)
         <> " at "
-        <> tokensToString ts
+        <> pointerToString ts
     EmptyArray ts ->
-      "Cannot perform operation on empty array at " <> tokensToString ts
+      "Cannot perform operation on empty array at " <> pointerToString ts
     TestFailed p actual expected ->
       "Test failed at "
         <> pointerToString p

@@ -9,6 +9,7 @@
 module Data.Aeson.Optics.Ext
   ( atKey
   , atNth
+  , atEnd
   ) where
 
 import Prelude
@@ -68,4 +69,32 @@ atNth n = atraversal matcher updater
     Just x -> case nv of
       Object km -> Object $ KeyMap.insert (Key.fromString $ show n) x km
       Array vec -> Array $ V.insertAt n x vec
+      v -> v
+
+-- | List 'atNth' for the index /after/ the last value of an 'Array'
+--
+-- This only useful to normalize adds as a lens:
+--
+-- >>> ['a', 'b', 'c'] & atEnd ?~ 'x'
+-- ['a', 'b', 'c', 'x']
+--
+-- Attempting to access this index on an array will always given 'Nothing'
+--
+-- >>> ['a', 'b', 'c'] ^? atEnd
+-- Nothing
+--
+-- Most other operations are going to be a no-op.
+atEnd :: AffineTraversal' Value (Maybe Value)
+atEnd = atraversal matcher updater
+ where
+  matcher :: Value -> Either Value (Maybe Value)
+  matcher = \case
+    Array {} -> Right Nothing -- index after end doesn't exist
+    v -> Left v
+
+  updater :: Value -> Maybe Value -> Value
+  updater nv = \case
+    Nothing -> nv
+    Just x -> case nv of
+      Array vec -> Array $ vec <> pure x
       v -> v
