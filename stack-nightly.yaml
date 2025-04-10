@@ -1,0 +1,6 @@
+resolver: nightly-2025-04-10
+extra-deps:
+  - aeson-optics-1.2.1
+allow-newer: true
+allow-newer-deps:
+  - aeson-optics
