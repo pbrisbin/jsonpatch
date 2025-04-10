@@ -102,8 +102,9 @@ runPatchTest n t = do
 
 spec :: Spec
 spec = do
-  context "json-patch-tests main" $ runPatchTests [relfile|tests.json|]
-  context "json-patch-tests RFC6092" $ runPatchTests [relfile|spec_tests.json|]
+  context "json-patch-tests" $ do
+    context "tests.json" $ runPatchTests [relfile|tests.json|]
+    context "spec_tests.json" $ runPatchTests [relfile|spec_tests.json|]
 
 decodeFileThrow :: FromJSON a => Path b File -> IO a
 decodeFileThrow file = do
