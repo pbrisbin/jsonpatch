@@ -4,13 +4,14 @@ module Data.JSON.Pointer.TokenSpec
 
 import Prelude
 
+import Data.Either (isLeft)
 import Data.Foldable (for_)
 import Data.JSON.Pointer.Token
 import Test.Hspec
 
 spec :: Spec
 spec = do
-  fdescribe "tokenFromText" $ do
+  describe "tokenFromText" $ do
     it "parses numbers" $ do
       tokenFromText "0" `shouldBe` Right (N 0)
 
@@ -33,3 +34,9 @@ spec = do
 
       for_ ts $ \t -> do
         tokenFromText (tokenToText t) `shouldBe` Right t
+
+    it "parses numeric-looking keys as keys" $ do
+      tokenFromText "1e0" `shouldBe` Right (K "1e0")
+
+    it "rejects leading zeros" $ do
+      tokenFromText "01" `shouldSatisfy` isLeft

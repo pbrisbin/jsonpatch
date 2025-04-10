@@ -38,6 +38,12 @@ pointerP = do
   ts <- (char '/' *> tokenP `sepBy1` char '/' <|> pure []) <* endOfInput
   pure $ Pointer ts
 
+tokenP :: Parser Token
+tokenP =
+  either (fail . ("invalid token: " <>)) pure
+    . tokenFromText
+    =<< takeTill (== '/')
+
 pointerToText :: Pointer -> Text
 pointerToText = ("/" <>) . T.intercalate "/" . map tokenToText . (.tokens)
 
