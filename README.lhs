@@ -51,7 +51,6 @@ main = do
       }
     |]
 
-
   either (fail . displayException) (BSL.putStr . encodePretty)
     $ applyPatches patch document
 ```
