@@ -83,7 +83,6 @@ library:
     - aeson
     - aeson-optics
     - attoparsec
-    - mtl
     - optics-core
     - text
     - vector

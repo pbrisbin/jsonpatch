@@ -13,11 +13,8 @@ module Data.JSON.Patch.Apply
 
 import Prelude
 
-import Control.Monad (unless, void, when)
-import Control.Monad.Except (MonadError, runExcept, throwError)
-import Control.Monad.State (MonadState, execStateT, gets, modify, put)
+import Control.Monad (foldM, void, when)
 import Data.Aeson (Value (..))
-import Data.Foldable (traverse_)
 import Data.JSON.Patch.Error
 import Data.JSON.Patch.Type
 import Data.JSON.Pointer
@@ -26,53 +23,51 @@ import Data.Vector qualified as V
 import Optics.Core
 
 applyPatches :: [Patch] -> Value -> Either PatchError Value
-applyPatches ps = runExcept . execStateT (traverse_ applyPatch ps)
+applyPatches ps v = foldM applyPatch v ps
 
-applyPatch :: (MonadError PatchError m, MonadState Value m) => Patch -> m ()
-applyPatch = \case
-  Add op -> add op.value op.path
-  Remove op -> remove op.path
-  Replace op -> remove op.path >> add op.value op.path
+applyPatch :: Value -> Patch -> Either PatchError Value
+applyPatch val = \case
+  Add op -> add op.value op.path val
+  Remove op -> remove op.path val
+  Replace op -> remove op.path val >>= add op.value op.path
   Move op -> do
-    v <- get op.from
-    remove op.from
-    add v op.path
-  Copy op -> flip add op.path =<< get op.from
+    v <- get op.from val
+    remove op.from val >>= add v op.path
+  Copy op -> do
+    v <- get op.from val
+    add v op.path val
   Test op -> do
-    v <- get op.path
-    unless (v == op.value) $ throwError $ TestFailed op.path v op.value
+    v <- get op.path val
+    if v /= op.value
+      then Left $ TestFailed op.path v op.value
+      else Right val
 
-get :: (MonadError PatchError m, MonadState Value m) => Pointer -> m Value
-get p =
-  gets (preview $ pointerL p) >>= \case
-    Nothing -> throwError $ PointerNotFound p Nothing
-    Just v -> pure v
+get :: Pointer -> Value -> Either PatchError Value
+get p val =
+  maybe (Left $ PointerNotFound p Nothing) Right
+    $ preview (pointerL p) val
 
-add :: (MonadError PatchError m, MonadState Value m) => Value -> Pointer -> m ()
-add v p = case splitPointer p of
-  Nothing -> put v
+add :: Value -> Pointer -> Value -> Either PatchError Value
+add v p val = case splitPointer p of
+  Nothing -> Right v
   Just (parent, t) -> do
-    validateAdd parent t
-    modify $ atPointerL p ?~ v
+    validateAdd parent t val
+    Right $ val & atPointerL p ?~ v
 
-remove :: (MonadError PatchError m, MonadState Value m) => Pointer -> m ()
-remove p = do
-  void $ get p
-  modify $ atPointerL p .~ Nothing
+remove :: Pointer -> Value -> Either PatchError Value
+remove p val = do
+  void $ get p val
+  Right $ val & atPointerL p .~ Nothing
 
-validateAdd
-  :: (MonadError PatchError m, MonadState Value m)
-  => Pointer
-  -> Token
-  -> m ()
-validateAdd parent t = do
-  target <- get parent
+validateAdd :: Pointer -> Token -> Value -> Either PatchError ()
+validateAdd parent t val = do
+  target <- get parent val
 
   case (t, target) of
-    (_, Object _) -> pure () -- everything works on objects
-    (K _, v) -> throwError $ InvalidObjectOperation parent v
+    (_, Object _) -> Right () -- everything works on objects
+    (K _, v) -> Left $ InvalidObjectOperation parent v
     (N n, Array vec) -> do
-      when (n < 0) $ throwError $ IndexOutOfBounds parent n vec
-      when (n > V.length vec) $ throwError $ IndexOutOfBounds parent n vec
-    (N _, v) -> throwError $ InvalidArrayOperation parent v
-    _ -> pure ()
+      when (n < 0) $ Left $ IndexOutOfBounds parent n vec
+      when (n > V.length vec) $ Left $ IndexOutOfBounds parent n vec
+    (N _, v) -> Left $ InvalidArrayOperation parent v
+    _ -> Right ()
