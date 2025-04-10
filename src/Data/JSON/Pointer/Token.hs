@@ -36,7 +36,7 @@ tokensToString :: [Token] -> String
 tokensToString = unpack . tokensToText
 
 tokensToText :: [Token] -> Text
-tokensToText ts = "/" <> T.intercalate "/" (map tokenToText ts <> ["-"])
+tokensToText ts = "/" <> T.intercalate "/" (map tokenToText ts)
 
 tokenToText :: Token -> Text
 tokenToText = \case
