@@ -134,6 +134,7 @@ test-suite spec
       Data.Aeson.Optics.ExtSpec
       Data.JSON.Patch.PointerSpec
       Data.JSON.PatchSpec
+      Data.JSON.Pointer.TokenSpec
       Data.Vector.ExtSpec
       Paths_jsonpatch
   hs-source-dirs:

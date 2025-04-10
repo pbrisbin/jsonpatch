@@ -8,8 +8,9 @@
 -- Portability : POSIX
 module Data.JSON.Pointer.Token
   ( Token (..)
+  , tokenFromText
+  , tokenToText
   , tokenP
-  , tokensToText
   , tokenL
   , atTokenL
   ) where
@@ -44,26 +45,16 @@ atTokenL = \case
   E -> atEnd
   K k -> atKey k
 
-tokensToText :: [Token] -> Text
-tokensToText ts = "/" <> T.intercalate "/" (map tokenToText ts)
-
-tokenToText :: Token -> Text
-tokenToText = \case
-  K k -> Key.toText k
-  N n -> pack $ show n
-  E -> "-"
+tokenFromText :: Text -> Either String Token
+tokenFromText = parseOnly tokenP
 
 tokenP :: Parser Token
-tokenP = wtf <|> choice [nP, eP, kP]
-
--- |
---
--- The tests love to use this value as an example. I'm clearly confused because
--- I would expect it to fail 'nP' and 'eP', backtrack, then succeed in 'kP' just
--- fine, but instead it causes errors with "endOfInput". We'll special case it
--- for now, but clearly keys with numbers in them are a problem.
-wtf :: Parser Token
-wtf = K . Key.fromText <$> string "1e0"
+tokenP =
+  choice
+    [ nP <?> "numeric index without leading zeros"
+    , eP <?> "end of array token"
+    , kP <?> "escaped object key"
+    ]
 
 nP :: Parser Token
 nP =
@@ -89,3 +80,9 @@ kP =
     . T.replace "~0" "~"
     . T.replace "~1" "/"
     <$> takeTill (== '/')
+
+tokenToText :: Token -> Text
+tokenToText = \case
+  K k -> T.replace "/" "~1" $ T.replace "~" "~0" $ Key.toText k
+  N n -> pack $ show n
+  E -> "-"
