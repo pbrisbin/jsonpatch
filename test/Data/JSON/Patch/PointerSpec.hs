@@ -21,33 +21,34 @@ spec = do
   describe "pointerFromText" $ do
     context "success" $ do
       it "empty" $ do
-        pointerFromText "" `shouldBe` Right PointerEmpty
+        pointerFromText "" `shouldBe` Right (Pointer [])
 
       it "root-only" $ do
-        pointerFromText "/" `shouldBe` Right (PointerPath [] $ K "")
+        pointerFromText "/" `shouldBe` Right (Pointer [K ""])
 
       it "path" $ do
         pointerFromText "/foo/0/bar/1/baz"
           `shouldBe` Right
-            ( PointerPath
+            ( Pointer
                 [ K "foo"
                 , N 0
                 , K "bar"
                 , N 1
+                , K "baz"
                 ]
-                $ K "baz"
             )
 
       it "path end of array" $ do
         pointerFromText "/foo/0/bar/1/-"
           `shouldBe` Right
-            ( PointerPathEnd
+            ( Pointer
                 [ K "foo"
                 , N 0
                 , K "bar"
                 , N 1
+                , E
                 ]
             )
 
       it "handles implementation-specific numeric parsing" $ do
-        pointerFromText "/1e0" `shouldBe` Right (PointerPath [] $ K "1e0")
+        pointerFromText "/1e0" `shouldBe` Right (Pointer [K "1e0"])

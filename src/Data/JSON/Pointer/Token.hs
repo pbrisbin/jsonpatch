@@ -10,8 +10,6 @@ module Data.JSON.Pointer.Token
   ( Token (..)
   , tokenP
   , tokensToText
-  , tokensToString
-  , tokensL
   , tokenL
   , atTokenL
   ) where
@@ -21,19 +19,30 @@ import Prelude
 import Control.Applicative (optional, (<|>))
 import Data.Aeson (Key, Value (..))
 import Data.Aeson.Key qualified as Key
-import Data.Aeson.Optics
+import Data.Aeson.Optics (key, nth)
 import Data.Aeson.Optics.Ext
-import Data.Attoparsec.Text
-import Data.Text (Text, pack, unpack)
+import Data.Attoparsec.Text hiding (atEnd)
+import Data.Text (Text, pack)
 import Data.Text qualified as T
 import Optics
 import Text.Read (readEither)
 
-data Token = K Key | N Int
+data Token = N Int | E | K Key
   deriving stock (Eq, Show)
 
-tokensToString :: [Token] -> String
-tokensToString = unpack . tokensToText
+-- | Access a key or array index like 'ix', used for indexing
+tokenL :: Token -> AffineTraversal' Value Value
+tokenL t = case t of
+  N n -> nth n
+  E -> atEnd % _Just
+  K k -> key k
+
+-- | Access a key or array index like 'at', used for adding or removing
+atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
+atTokenL = \case
+  N n -> atNth n
+  E -> atEnd
+  K k -> atKey k
 
 tokensToText :: [Token] -> Text
 tokensToText ts = "/" <> T.intercalate "/" (map tokenToText ts)
@@ -42,44 +51,25 @@ tokenToText :: Token -> Text
 tokenToText = \case
   K k -> Key.toText k
   N n -> pack $ show n
-
-tokensL :: [Token] -> AffineTraversal' Value Value
-tokensL = foldr ((%) . tokenL) $ castOptic simple
-
--- | Access a key or array index like 'ix'
-tokenL :: Token -> AffineTraversal' Value Value
-tokenL t = case t of
-  K k -> key k
-  N n -> nth n
-
--- | Access a key or array index, but 'at'-like
-atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
-atTokenL = \case
-  K k -> atKey k
-  N n -> atNth n
+  E -> "-"
 
 tokenP :: Parser Token
-tokenP = wtf <|> N <$> indexP <|> K <$> keyP
+tokenP = wtf <|> choice [nP, eP, kP]
 
 -- |
 --
 -- The tests love to use this value as an example. I'm clearly confused because
--- I would expect it to fail 'indexP', backtrack, then succeed in 'keyP', but it
--- causes errors with "endOfInput", so we'll special case it for now.
+-- I would expect it to fail 'nP' and 'eP', backtrack, then succeed in 'kP' just
+-- fine, but instead it causes errors with "endOfInput". We'll special case it
+-- for now, but clearly keys with numbers in them are a problem.
 wtf :: Parser Token
 wtf = K . Key.fromText <$> string "1e0"
 
-keyP :: Parser Key
-keyP =
-  Key.fromText
-    . T.replace "~0" "~"
-    . T.replace "~1" "/"
-    <$> takeTill (== '/')
-
-indexP :: Parser Int
-indexP = do
-  f <- maybe id (const negate) <$> optional (char '-')
-  f <$> nonzeroP <|> 0 <$ char '0'
+nP :: Parser Token
+nP =
+  N <$> do
+    f <- maybe id (const negate) <$> optional (char '-')
+    f <$> nonzeroP <|> 0 <$ char '0'
 
 nonzeroP :: Parser Int
 nonzeroP = do
@@ -88,3 +78,14 @@ nonzeroP = do
  where
   err :: String -> String -> Parser a
   err x msg = fail $ "Unable to read integer from " <> x <> ": " <> msg
+
+eP :: Parser Token
+eP = E <$ char '-'
+
+kP :: Parser Token
+kP =
+  K
+    . Key.fromText
+    . T.replace "~0" "~"
+    . T.replace "~1" "/"
+    <$> takeTill (== '/')
