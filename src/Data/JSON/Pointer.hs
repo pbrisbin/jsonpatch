@@ -19,6 +19,7 @@ import Data.JSON.Pointer.Token
 import Data.List.NonEmpty (nonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text, unpack)
+import Data.Text qualified as T
 import Optics
 
 newtype Pointer = Pointer
@@ -38,7 +39,7 @@ pointerP = do
   pure $ Pointer ts
 
 pointerToText :: Pointer -> Text
-pointerToText = tokensToText . (.tokens)
+pointerToText = ("/" <>) . T.intercalate "/" . map tokenToText . (.tokens)
 
 pointerToString :: Pointer -> String
 pointerToString = unpack . pointerToText
