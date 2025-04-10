@@ -115,3 +115,4 @@ tests:
       - bytestring
       - jsonpatch
       - markdown-unlit
+      - text

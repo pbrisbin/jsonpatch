@@ -35,10 +35,13 @@ Our example will make use of a few more libraries:
 
 ```haskell
 import Control.Exception (displayException)
-import Data.Aeson (Value, Result(..), fromJSON)
+import Data.Aeson (FromJSON, ToJSON, Result(..), Value, fromJSON)
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.QQ (aesonQQ)
+import Data.ByteString (ByteString)
 import Data.ByteString.Lazy qualified as BSL
+import Data.Text (Text)
+import GHC.Generics (Generic)
 ```
 
 The `FromJSON` instance can be used to build a `[Patch]`:
@@ -74,7 +77,7 @@ result = patchValue patch [aesonQQ|
 The result is in `Either PatchError`, with `displayException` available to get
 a user-friendly message.
 
-```haskell
+```hs
 main :: IO ()
 main = either (fail . displayException) (BSL.putStr . encodePretty) result
 ```
@@ -88,6 +91,60 @@ The above program outputs:
 }
 ```
 
+## `AsValue` Example
+
+The polymorphic `patchAsValue` function is also available, which provides the
+following benefits over `patchValue`:
+
+1. The patches argument can be any `AsValue` (from `aeson-optics`), meaning you
+   can give it directly a `ByteString`, `Value`, or `Text`. Parse errors turning
+   it into `[Patch]` will be normalized to `PatchError`.
+1. The target argument can be any type with `FromJSON` and `ToJSON`. This means
+   you can patch any of your domain types directly. `AsValue` would've worked
+   here too, but your domain types are far less likely to have that instance.
+
+```haskell
+data Dog = Dog
+  { name :: Text
+  , isGood :: Bool
+  }
+  deriving stock Generic
+  deriving anyclass (FromJSON, ToJSON)
+
+fido :: Dog
+fido = Dog "fido" False -- gasp!
+
+bytes :: ByteString
+bytes = "[{ \"op\":\"replace\", \"path\":\"/isGood\", \"value\":true }]"
+
+result2 :: Either PatchError Dog
+result2 = patchAsValue bytes fido
+```
+
+```hs
+main :: IO ()
+main = either (fail . displayException) (BSL.putStr . encodePretty) result2
+```
+
+The above program outputs:
+
+```json
+{
+  "isGood": true,
+  "name": "fido"
+}
+```
+
+<!--
+
+```haskell
+main :: IO ()
+main = do
+  either (fail . displayException) (BSL.putStr . encodePretty) result
+  either (fail . displayException) (BSL.putStr . encodePretty) result2
+```
+
+-->
 
 ## Quality
 
