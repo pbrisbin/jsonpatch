@@ -11,11 +11,10 @@ Haskell package for parsing and applying [JSON Patches][jsonpatch].
 
 ## Example
 
-Typical use cases need only one import:
-
 <!--
 
 ```haskell
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Main (main) where
@@ -25,34 +24,59 @@ import Text.Markdown.Unlit ()
 
 -->
 
+Typical use cases need only one import:
+
+```haskell
+import Data.JSON.Patch
+```
+
+Our example will make use of a few more libraries:
+
+
 ```haskell
 import Control.Exception (displayException)
-import Data.Aeson (Result(..), fromJSON)
+import Data.Aeson (Value, Result(..), fromJSON)
 import Data.Aeson.Encode.Pretty
 import Data.Aeson.QQ (aesonQQ)
 import Data.ByteString.Lazy qualified as BSL
-import Data.JSON.Patch
+```
 
+The `FromJSON` instance can be used to build a `[Patch]`:
+
+```haskell
+patch :: [Patch]
+patch = fromResult $ fromJSON [aesonQQ|
+  [
+    { "op": "replace", "path": "/baz", "value": "boo" },
+    { "op": "add", "path": "/hello", "value": ["world"] },
+    { "op": "remove", "path": "/foo" }
+  ]
+|]
+
+
+-- | Unsafe unwrapping for the sake of example
+fromResult :: Result a -> a
+fromResult (Success a) = a
+```
+
+The patches can then be applied to a document:
+
+```haskell
+result :: Either PatchError Value
+result = applyPatches patch [aesonQQ|
+  {
+    "baz": "qux",
+    "foo": "bar"
+  }
+|]
+```
+
+The result is in `Either PatchError`, with `displayException` available to get
+a user-friendly message.
+
+```haskell
 main :: IO ()
-main = do
-  let
-    Success patch = fromJSON [aesonQQ|
-      [
-        { "op": "replace", "path": "/baz", "value": "boo" },
-        { "op": "add", "path": "/hello", "value": ["world"] },
-        { "op": "remove", "path": "/foo" }
-      ]
-    |]
-
-    document = [aesonQQ|
-      {
-        "baz": "qux",
-        "foo": "bar"
-      }
-    |]
-
-  either (fail . displayException) (BSL.putStr . encodePretty)
-    $ applyPatches patch document
+main = either (fail . displayException) (BSL.putStr . encodePretty) result
 ```
 
 The above program outputs:
@@ -64,8 +88,6 @@ The above program outputs:
 }
 ```
 
-The result is in `Either PatchError`, with `displayException` available to get
-a user-friendly message.
 
 ## Quality
 
