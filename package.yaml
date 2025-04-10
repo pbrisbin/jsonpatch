@@ -84,7 +84,7 @@ library:
     - aeson-optics
     - attoparsec
     - mtl
-    - optics
+    - optics-core
     - text
     - vector
 
@@ -102,7 +102,7 @@ tests:
       - hspec
       - hspec-expectations-json
       - jsonpatch
-      - optics
+      - optics-core
       - path
       - vector
 

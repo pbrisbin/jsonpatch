@@ -24,7 +24,7 @@ import Data.Bifunctor (first)
 import Data.Char (isDigit)
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
-import Optics
+import Optics.Core
 import Text.Read (readEither)
 
 data Token = N Int | E | K Key

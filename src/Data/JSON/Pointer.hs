@@ -20,7 +20,7 @@ import Data.List.NonEmpty (nonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text, unpack)
 import Data.Text qualified as T
-import Optics
+import Optics.Core
 
 newtype Pointer = Pointer
   { tokens :: [Token]

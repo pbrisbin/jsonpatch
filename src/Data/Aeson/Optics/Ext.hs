@@ -20,7 +20,7 @@ import Data.Aeson.KeyMap qualified as KeyMap
 import Data.Aeson.Optics
 import Data.Vector qualified as V
 import Data.Vector.Ext qualified as V
-import Optics
+import Optics.Core
 
 -- | Like 'key', but uses 'at' instead of 'ix'. This is handy when adding and
 -- removing object keys:

@@ -17,7 +17,7 @@ import Data.Aeson.Optics
 import Data.Aeson.Optics.Ext
 import Data.Aeson.QQ
 import Data.Foldable (for_)
-import Optics
+import Optics.Core
 import Test.Hspec
 
 spec :: Spec

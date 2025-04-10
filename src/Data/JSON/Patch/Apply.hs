@@ -23,7 +23,7 @@ import Data.JSON.Patch.Type
 import Data.JSON.Pointer
 import Data.JSON.Pointer.Token
 import Data.Vector qualified as V
-import Optics
+import Optics.Core
 
 applyPatches :: [Patch] -> Value -> Either PatchError Value
 applyPatches ps = runExcept . execStateT (traverse_ applyPatch ps)
