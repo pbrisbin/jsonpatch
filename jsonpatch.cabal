@@ -73,7 +73,6 @@ library
     , aeson-optics
     , attoparsec
     , base <5
-    , mtl
     , optics-core
     , text
     , vector
