@@ -29,17 +29,9 @@ applyPatch val = \case
   Add op -> add op.value op.path val
   Remove op -> remove op.path val
   Replace op -> remove op.path val >>= add op.value op.path
-  Move op -> do
-    v <- get op.from val
-    remove op.from val >>= add v op.path
-  Copy op -> do
-    v <- get op.from val
-    add v op.path val
-  Test op -> do
-    v <- get op.path val
-    if v /= op.value
-      then Left $ TestFailed op.path v op.value
-      else Right val
+  Move op -> get op.from val >>= \v -> remove op.from val >>= add v op.path
+  Copy op -> get op.from val >>= \v -> add v op.path val
+  Test op -> get op.path val >>= \v -> test v op.value op.path val
 
 get :: Pointer -> Value -> Either PatchError Value
 get p val = note (PointerNotFound p Nothing) $ val ^? pointerL p
@@ -55,6 +47,10 @@ remove :: Pointer -> Value -> Either PatchError Value
 remove p val = do
   void $ get p val
   Right $ val & atPointerL p .~ Nothing
+
+test :: Value -> Value -> Pointer -> Value -> Either PatchError Value
+test v expected p val =
+  note (TestFailed p v expected) $ val <$ guard (v == expected)
 
 validateAdd :: Pointer -> Token -> Value -> Either PatchError ()
 validateAdd parent t val = do
