@@ -9,8 +9,10 @@
 module Data.JSON.Patch
   ( Patch
   , PatchError
-  , applyPatches
+  , patchValue
+  , patchAsValue
   ) where
 
 import Data.JSON.Patch.Apply
+import Data.JSON.Patch.Apply.AsValue
 import Data.JSON.Patch.Type

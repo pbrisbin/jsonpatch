@@ -63,7 +63,7 @@ The patches can then be applied to a document:
 
 ```haskell
 result :: Either PatchError Value
-result = applyPatches patch [aesonQQ|
+result = patchValue patch [aesonQQ|
   {
     "baz": "qux",
     "foo": "bar"

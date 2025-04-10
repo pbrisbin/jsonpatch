@@ -7,8 +7,8 @@
 -- Stability   : experimental
 -- Portability : POSIX
 module Data.JSON.Patch.Apply
-  ( applyPatches
-  , PatchError (..)
+  ( PatchError (..)
+  , patchValue
   ) where
 
 import Data.JSON.Patch.Prelude
@@ -21,17 +21,18 @@ import Data.JSON.Pointer.Token
 import Data.Vector qualified as V
 import Optics.Core
 
-applyPatches :: [Patch] -> Value -> Either PatchError Value
-applyPatches ps v = foldM applyPatch v ps
-
-applyPatch :: Value -> Patch -> Either PatchError Value
-applyPatch val = \case
-  Add op -> add op.value op.path val
-  Remove op -> remove op.path val
-  Replace op -> remove op.path val >>= add op.value op.path
-  Move op -> get op.from val >>= \v -> remove op.from val >>= add v op.path
-  Copy op -> get op.from val >>= \v -> add v op.path val
-  Test op -> get op.path val >>= \v -> test v op.value op.path val
+-- | Apply the given 'Patch'es to the given 'Value'
+patchValue :: [Patch] -> Value -> Either PatchError Value
+patchValue patches target = foldM go target patches
+ where
+  go :: Value -> Patch -> Either PatchError Value
+  go val = \case
+    Add op -> add op.value op.path val
+    Remove op -> remove op.path val
+    Replace op -> remove op.path val >>= add op.value op.path
+    Move op -> get op.from val >>= \v -> remove op.from val >>= add v op.path
+    Copy op -> get op.from val >>= \v -> add v op.path val
+    Test op -> get op.path val >>= \v -> test v op.value op.path val
 
 get :: Pointer -> Value -> Either PatchError Value
 get p val = note (PointerNotFound p Nothing) $ val ^? pointerL p

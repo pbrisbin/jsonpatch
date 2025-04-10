@@ -70,9 +70,7 @@ runPatchTest n t = do
       | otherwise = it
 
     comment = fromMaybe ("test #" <> show n) t.comment
-    result = case fromJSON t.patch of
-      Error err -> Left $ ParseError t.patch err
-      Success patches -> applyPatches patches t.doc
+    result = patchAsValue t.patch t.doc
 
   it' comment $ case (result, t.expected) of
     (Left ex, Left e) -> do
