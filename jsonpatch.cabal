@@ -74,7 +74,7 @@ library
     , attoparsec
     , base <5
     , mtl
-    , optics
+    , optics-core
     , text
     , vector
   default-language: GHC2021
@@ -166,7 +166,7 @@ test-suite spec
     , hspec
     , hspec-expectations-json
     , jsonpatch
-    , optics
+    , optics-core
     , path
     , vector
   default-language: GHC2021
