@@ -6,6 +6,8 @@
 -- Maintainer  : pbrisbin@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+--
+-- <https://datatracker.ietf.org/doc/html/rfc6902>
 module Data.JSON.Patch.Type
   ( Patch (..)
   , AddOp (..)

@@ -1,3 +1,12 @@
+-- |
+--
+-- Module      : Data.JSON.Pointer
+-- Copyright   : (c) 2025 Patrick Brisbin
+-- License     : AGPL-3
+-- Maintainer  : pbrisbin@gmail.com
+-- Stability   : experimental
+-- Portability : POSIX
+--
 -- <https://datatracker.ietf.org/doc/html/rfc6901/>
 module Data.JSON.Pointer
   ( Pointer (..)
