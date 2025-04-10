@@ -1,5 +1,6 @@
 module Data.JSON.Patch.Prelude
   ( module X
+  , note
   ) where
 
 import Prelude as X
@@ -13,3 +14,6 @@ import Data.Maybe as X (fromMaybe)
 import Data.Text as X (Text, pack, unpack)
 import Data.Vector as X (Vector)
 import GHC.Generics as X (Generic)
+
+note :: e -> Maybe a -> Either e a
+note e = maybe (Left e) Right

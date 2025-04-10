@@ -42,9 +42,7 @@ applyPatch val = \case
       else Right val
 
 get :: Pointer -> Value -> Either PatchError Value
-get p val =
-  maybe (Left $ PointerNotFound p Nothing) Right
-    $ preview (pointerL p) val
+get p val = note (PointerNotFound p Nothing) $ val ^? pointerL p
 
 add :: Value -> Pointer -> Value -> Either PatchError Value
 add v p val = case splitPointer p of
