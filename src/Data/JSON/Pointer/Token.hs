@@ -18,7 +18,7 @@ module Data.JSON.Pointer.Token
 
 import Prelude
 
-import Control.Applicative ((<|>))
+import Control.Applicative (optional, (<|>))
 import Data.Aeson (Key, Value (..))
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.Optics
@@ -77,7 +77,9 @@ keyP =
     <$> takeTill (== '/')
 
 indexP :: Parser Int
-indexP = nonzeroP <|> 0 <$ char '0'
+indexP = do
+  f <- maybe id (const negate) <$> optional (char '-')
+  f <$> nonzeroP <|> 0 <$ char '0'
 
 nonzeroP :: Parser Int
 nonzeroP = do
