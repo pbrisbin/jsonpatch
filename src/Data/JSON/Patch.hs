@@ -8,6 +8,7 @@
 -- Portability : POSIX
 module Data.JSON.Patch
   ( Patch
+  , PatchError
   , applyPatches
   ) where
 
