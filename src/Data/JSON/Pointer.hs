@@ -9,16 +9,13 @@ module Data.JSON.Pointer
   , splitPointer
   ) where
 
-import Prelude
+import Data.JSON.Patch.Prelude
 
-import Control.Applicative ((<|>))
 import Data.Aeson (FromJSON (..), Value, withText)
 import Data.Aeson.Optics (_JSON)
 import Data.Attoparsec.Text
 import Data.JSON.Pointer.Token
-import Data.List.NonEmpty (nonEmpty)
 import Data.List.NonEmpty qualified as NE
-import Data.Text (Text, unpack)
 import Data.Text qualified as T
 import Optics.Core
 

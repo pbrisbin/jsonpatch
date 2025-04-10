@@ -43,6 +43,7 @@ library
       Data.JSON.Patch
       Data.JSON.Patch.Apply
       Data.JSON.Patch.Error
+      Data.JSON.Patch.Prelude
       Data.JSON.Patch.Type
       Data.JSON.Pointer
       Data.JSON.Pointer.Token

@@ -16,12 +16,10 @@ module Data.JSON.Patch.Type
   , TestOp (..)
   ) where
 
-import Prelude
+import Data.JSON.Patch.Prelude
 
 import Data.Aeson
 import Data.JSON.Pointer
-import Data.Text (Text)
-import GHC.Generics (Generic)
 
 data Patch
   = Add AddOp

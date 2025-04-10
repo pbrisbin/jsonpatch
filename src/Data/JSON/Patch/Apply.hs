@@ -11,9 +11,8 @@ module Data.JSON.Patch.Apply
   , PatchError (..)
   ) where
 
-import Prelude
+import Data.JSON.Patch.Prelude
 
-import Control.Monad (foldM, void, when)
 import Data.Aeson (Value (..))
 import Data.JSON.Patch.Error
 import Data.JSON.Patch.Type
