@@ -10,20 +10,19 @@ module Data.JSON.Pointer.Token
   ( Token (..)
   , tokenFromText
   , tokenToText
-  , tokenP
   , tokenL
   , atTokenL
   ) where
 
 import Prelude
 
-import Control.Applicative (optional, (<|>))
 import Data.Aeson (Key, Value (..))
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.Optics (key, nth)
 import Data.Aeson.Optics.Ext
-import Data.Attoparsec.Text hiding (atEnd)
-import Data.Text (Text, pack)
+import Data.Bifunctor (first)
+import Data.Char (isDigit)
+import Data.Text (Text, pack, unpack)
 import Data.Text qualified as T
 import Optics
 import Text.Read (readEither)
@@ -46,40 +45,23 @@ atTokenL = \case
   K k -> atKey k
 
 tokenFromText :: Text -> Either String Token
-tokenFromText = parseOnly tokenP
+tokenFromText = \case
+  "" -> Right $ K ""
+  "-" -> Right E
+  t | T.all isDigit t -> N <$> readDigits t
+  -- The spec doesn't allow this (negative indexes), but the tests use it to
+  -- trigger the lower bounds error example.
+  t | Just ('-', n) <- T.uncons t, T.all isDigit n -> N . negate <$> readDigits n
+  t -> Right $ K $ Key.fromText $ T.replace "~0" "~" $ T.replace "~1" "/" t
 
-tokenP :: Parser Token
-tokenP =
-  choice
-    [ nP <?> "numeric index without leading zeros"
-    , eP <?> "end of array token"
-    , kP <?> "escaped object key"
-    ]
-
-nP :: Parser Token
-nP =
-  N <$> do
-    f <- maybe id (const negate) <$> optional (char '-')
-    f <$> nonzeroP <|> 0 <$ char '0'
-
-nonzeroP :: Parser Int
-nonzeroP = do
-  ds <- (:) <$> satisfy (inClass "1-9") <*> many' digit
-  either (err ds) pure $ readEither ds
- where
-  err :: String -> String -> Parser a
-  err x msg = fail $ "Unable to read integer from " <> x <> ": " <> msg
-
-eP :: Parser Token
-eP = E <$ char '-'
-
-kP :: Parser Token
-kP =
-  K
-    . Key.fromText
-    . T.replace "~0" "~"
-    . T.replace "~1" "/"
-    <$> takeTill (== '/')
+readDigits :: Text -> Either String Int
+readDigits t
+  | t == "0" = Right 0
+  | T.isPrefixOf "0" t = Left "leading zeros"
+  | otherwise =
+      first (\msg -> "could not read digits " <> unpack t <> ": " <> msg)
+        $ readEither
+        $ unpack t
 
 tokenToText :: Token -> Text
 tokenToText = \case
