@@ -46,7 +46,7 @@ add v p val = case splitPointer p of
 
 remove :: Pointer -> Value -> Either PatchError Value
 remove p val = do
-  void $ get p val
+  void $ get p val -- thing to remove must exist
   Right $ val & atPointerL p .~ Nothing
 
 test :: Value -> Value -> Pointer -> Value -> Either PatchError Value
