@@ -25,22 +25,22 @@ import Data.Text qualified as T
 import Optics.Core
 import Text.Read (readMaybe)
 
-data Token = N Int | E | K Key
+data Token = K Key | N Int | E
   deriving stock (Eq, Show)
 
 -- | Access a key or array index like 'ix', used for indexing
 tokenL :: Token -> AffineTraversal' Value Value
 tokenL t = case t of
+  K k -> key k
   N n -> nth n
   E -> atEnd % _Just
-  K k -> key k
 
 -- | Access a key or array index like 'at', used for adding or removing
 atTokenL :: Token -> AffineTraversal' Value (Maybe Value)
 atTokenL = \case
+  K k -> atKey k
   N n -> atNth n
   E -> atEnd
-  K k -> atKey k
 
 tokenFromText :: Text -> Either String Token
 tokenFromText = \case
