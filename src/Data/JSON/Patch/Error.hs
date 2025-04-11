@@ -12,13 +12,14 @@ module Data.JSON.Patch.Error
 
 import Data.JSON.Patch.Prelude
 
-import Data.Aeson (Value)
+import Data.Aeson (Value, encode)
+import Data.ByteString.Lazy.Char8 as BSL8
 import Data.JSON.Pointer
 import Data.Vector qualified as V
 
 data PatchError
   = ParseError Value String
-  | PointerNotFound Pointer
+  | PointerNotFound Value Pointer
   | InvalidObjectOperation Pointer Value
   | InvalidArrayOperation Pointer Value
   | IndexOutOfBounds Pointer Int (Vector Value)
@@ -31,21 +32,22 @@ instance Exception PatchError where
     ParseError v msg ->
       "Unable to parse Patch(es) from Value: "
         <> ("\n  error: " <> msg)
-        <> ("\n  input: " <> show v)
-    PointerNotFound ts ->
+        <> ("\n  input: " <> showValue v)
+    PointerNotFound v ts ->
       "Path "
         <> pointerToString ts
-        <> " does not exist"
+        <> " does not exist in "
+        <> showValue v
     InvalidObjectOperation ts v ->
       "Cannot perform object operation on non-object at "
         <> pointerToString ts
         <> ": "
-        <> show v
+        <> showValue v
     InvalidArrayOperation ts v ->
       "Cannot perform array operation on non-array at "
         <> pointerToString ts
         <> ": "
-        <> show v
+        <> showValue v
     IndexOutOfBounds ts n vec ->
       "Index "
         <> show n
@@ -58,5 +60,8 @@ instance Exception PatchError where
     TestFailed p actual expected ->
       "Test failed at "
         <> pointerToString p
-        <> ("\n  expected: " <> show expected)
-        <> ("\n    actual: " <> show actual)
+        <> ("\n  expected: " <> showValue expected)
+        <> ("\n    actual: " <> showValue actual)
+
+showValue :: Value -> String
+showValue = BSL8.unpack . encode

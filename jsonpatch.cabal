@@ -73,8 +73,8 @@ library
   build-depends:
       aeson
     , aeson-optics
-    , attoparsec
     , base <5
+    , bytestring
     , optics-core
     , text
     , vector

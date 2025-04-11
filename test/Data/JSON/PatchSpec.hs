@@ -126,6 +126,8 @@ indentedPretty n =
   indent = BSL8.replicate n ' '
   config = defConfig {confIndent = Spaces 2}
 
+{- FOURMOLU_DISABLE -}
+
 errorsMap :: [(String, PatchError -> Bool)]
 errorsMap =
   [ ("JSON Pointer should start with a slash", isParseError)
@@ -144,10 +146,7 @@ errorsMap =
   , ("move op shouldn't work with bad number", isPointerNotFound)
   , ("null is not valid value for 'path'", isParseError)
   , ("number is not equal to string", isTestFailed)
-  ,
-    ( "path /a does not exist -- missing objects are not created recursively"
-    , isPointerNotFound
-    )
+  , ("path /a does not exist -- missing objects are not created recursively", isPointerNotFound)
   , ("remove op shouldn't remove from array with bad number", isPointerNotFound)
   , ("removing a nonexistent field should fail", isPointerNotFound)
   , ("removing a nonexistent index should fail", isPointerNotFound)
@@ -159,6 +158,8 @@ errorsMap =
   , ("test op should reject the array value, it has leading zeros", isParseError)
   , ("test op shouldn't get array element 1", isPointerNotFound)
   ]
+
+{- FOURMOLU_ENABLE -}
 
 isParseError :: PatchError -> Bool
 isParseError = \case

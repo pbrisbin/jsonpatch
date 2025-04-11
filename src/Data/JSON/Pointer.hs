@@ -22,7 +22,6 @@ import Data.JSON.Patch.Prelude
 
 import Data.Aeson (FromJSON (..), Value, withText)
 import Data.Aeson.Optics (_JSON)
-import Data.Attoparsec.Text
 import Data.JSON.Pointer.Token
 import Data.List.NonEmpty qualified as NE
 import Data.Text qualified as T
@@ -37,18 +36,12 @@ instance FromJSON Pointer where
   parseJSON = withText "Pointer" $ either fail pure . pointerFromText
 
 pointerFromText :: Text -> Either String Pointer
-pointerFromText = parseOnly pointerP
-
-pointerP :: Parser Pointer
-pointerP = do
-  ts <- (char '/' *> tokenP `sepBy1` char '/' <|> pure []) <* endOfInput
-  pure $ Pointer ts
-
-tokenP :: Parser Token
-tokenP =
-  either (fail . ("invalid token: " <>)) pure
-    . tokenFromText
-    =<< takeTill (== '/')
+pointerFromText t = do
+  ts <- case T.uncons t of
+    Nothing -> Right []
+    Just ('/', rest) -> Right $ T.splitOn "/" rest
+    _ -> Left "A non-empty pointer must begin with /"
+  Pointer <$> traverse tokenFromText ts
 
 pointerToText :: Pointer -> Text
 pointerToText = ("/" <>) . T.intercalate "/" . map tokenToText . (.tokens)

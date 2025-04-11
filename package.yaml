@@ -82,7 +82,7 @@ library:
   dependencies:
     - aeson
     - aeson-optics
-    - attoparsec
+    - bytestring
     - optics-core
     - text
     - vector

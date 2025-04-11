@@ -23,7 +23,7 @@ import Data.Aeson.Optics.Ext
 import Data.Char (isDigit)
 import Data.Text qualified as T
 import Optics.Core
-import Text.Read (readEither)
+import Text.Read (readMaybe)
 
 data Token = N Int | E | K Key
   deriving stock (Eq, Show)
@@ -55,10 +55,10 @@ tokenFromText = \case
 readDigits :: Text -> Either String Int
 readDigits t
   | t == "0" = Right 0
-  | T.isPrefixOf "0" t = Left "leading zeros"
+  | T.isPrefixOf "0" t = Left "tokens cannot have leading zeros"
   | otherwise =
-      first (\msg -> "could not read digits " <> unpack t <> ": " <> msg)
-        $ readEither
+      note ("could not read " <> show t <> " as integer")
+        $ readMaybe
         $ unpack t
 
 tokenToText :: Token -> Text
