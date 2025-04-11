@@ -18,7 +18,7 @@ import Data.Vector qualified as V
 
 data PatchError
   = ParseError Value String
-  | PointerNotFound Pointer (Maybe String)
+  | PointerNotFound Pointer
   | InvalidObjectOperation Pointer Value
   | InvalidArrayOperation Pointer Value
   | IndexOutOfBounds Pointer Int (Vector Value)
@@ -32,11 +32,10 @@ instance Exception PatchError where
       "Unable to parse Patch(es) from Value: "
         <> ("\n  error: " <> msg)
         <> ("\n  input: " <> show v)
-    PointerNotFound ts mType ->
+    PointerNotFound ts ->
       "Path "
         <> pointerToString ts
         <> " does not exist"
-        <> maybe "" (" or is not " <>) mType
     InvalidObjectOperation ts v ->
       "Cannot perform object operation on non-object at "
         <> pointerToString ts

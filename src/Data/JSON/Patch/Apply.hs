@@ -35,7 +35,7 @@ patchValue patches target = foldM go target patches
     Test op -> get op.path val >>= \v -> test v op.value op.path val
 
 get :: Pointer -> Value -> Either PatchError Value
-get p val = note (PointerNotFound p Nothing) $ val ^? pointerL p
+get p val = note (PointerNotFound p) $ val ^? pointerL p
 
 add :: Value -> Pointer -> Value -> Either PatchError Value
 add v p val = case splitPointer p of
