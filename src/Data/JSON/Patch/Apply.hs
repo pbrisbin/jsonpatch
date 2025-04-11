@@ -59,9 +59,9 @@ validateAdd parent t val = do
 
   case (t, target) of
     (_, Object _) -> Right () -- everything works on objects
-    (K _, v) -> Left $ InvalidObjectOperation parent v
+    (K _, nonObject) -> Left $ InvalidObjectOperation parent nonObject
     (N n, Array vec) -> do
       when (n < 0) $ Left $ IndexOutOfBounds parent n vec
       when (n > V.length vec) $ Left $ IndexOutOfBounds parent n vec
-    (N _, v) -> Left $ InvalidArrayOperation parent v
+    (N _, nonArray) -> Left $ InvalidArrayOperation parent nonArray
     _ -> Right ()
