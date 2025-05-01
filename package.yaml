@@ -27,6 +27,7 @@ extra-doc-files:
 
 extra-source-files:
   - tests.json
+  - spec_tests.json
 
 ghc-options:
   - -Weverything
