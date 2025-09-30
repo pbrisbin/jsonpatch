@@ -1,1 +1,169 @@
-./README.lhs
+> [!NOTE]
+> All of my GitHub repositories have been **archived** and will be migrated to
+> Codeberg as I next work on them. This repository either now lives, or will
+> live, at:
+>
+> https://codeberg.org/pbrisbin/jsonpatch
+>
+> If you need to report an Issue or raise a PR, and this migration hasn't
+> happened yet, send an email to me@pbrisbin.com.
+
+# jsonpatch
+
+[![Hackage](https://img.shields.io/hackage/v/jsonpatch.svg?style=flat)](https://hackage.haskell.org/package/jsonpatch)
+[![Stackage Nightly](http://stackage.org/package/jsonpatch/badge/nightly)](http://stackage.org/nightly/package/jsonpatch)
+[![Stackage LTS](http://stackage.org/package/jsonpatch/badge/lts)](http://stackage.org/lts/package/jsonpatch)
+[![CI](https://github.com/pbrisbin/jsonpatch/actions/workflows/ci.yml/badge.svg)](https://github.com/pbrisbin/jsonpatch/actions/workflows/ci.yml)
+
+Haskell package for parsing and applying [JSON Patches][jsonpatch].
+
+[jsonpatch]: https://jsonpatch.com/
+
+## Example
+
+<!--
+
+```haskell
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+
+module Main (main) where
+import Prelude
+import Text.Markdown.Unlit ()
+```
+
+-->
+
+Typical use cases need only one import:
+
+```haskell
+import Data.JSON.Patch
+```
+
+Our example will make use of a few more libraries:
+
+
+```haskell
+import Control.Exception (displayException)
+import Data.Aeson (FromJSON, ToJSON, Result(..), Value, fromJSON)
+import Data.Aeson.Encode.Pretty
+import Data.Aeson.QQ (aesonQQ)
+import Data.ByteString (ByteString)
+import Data.ByteString.Lazy qualified as BSL
+import Data.Text (Text)
+import GHC.Generics (Generic)
+```
+
+The `FromJSON` instance can be used to build a `[Patch]`:
+
+```haskell
+patch :: [Patch]
+patch = fromResult $ fromJSON [aesonQQ|
+  [
+    { "op": "replace", "path": "/baz", "value": "boo" },
+    { "op": "add", "path": "/hello", "value": ["world"] },
+    { "op": "remove", "path": "/foo" }
+  ]
+|]
+
+
+-- | Unsafe unwrapping for the sake of example
+fromResult :: Result a -> a
+fromResult (Success a) = a
+```
+
+The patches can then be applied to a document:
+
+```haskell
+result :: Either PatchError Value
+result = patchValue patch [aesonQQ|
+  {
+    "baz": "qux",
+    "foo": "bar"
+  }
+|]
+```
+
+The result is in `Either PatchError`, with `displayException` available to get
+a user-friendly message.
+
+```hs
+main :: IO ()
+main = either (fail . displayException) (BSL.putStr . encodePretty) result
+```
+
+The above program outputs:
+
+```json
+{
+  "baz": "boo",
+  "hello": ["world"]
+}
+```
+
+## `AsValue` Example
+
+The polymorphic `patchAsValue` function is also available, which provides the
+following benefits over `patchValue`:
+
+1. The patches argument can be any `AsValue` (from `aeson-optics`), meaning you
+   can give it directly a `ByteString`, `Value`, or `Text`. Parse errors turning
+   it into `[Patch]` will be normalized to `PatchError`.
+1. The target argument can be any type with `FromJSON` and `ToJSON`. This means
+   you can patch any of your domain types directly. `AsValue` would've worked
+   here too, but your domain types are far less likely to have that instance.
+
+```haskell
+data Dog = Dog
+  { name :: Text
+  , isGood :: Bool
+  }
+  deriving stock Generic
+  deriving anyclass (FromJSON, ToJSON)
+
+fido :: Dog
+fido = Dog "fido" False -- gasp!
+
+bytes :: ByteString
+bytes = "[{ \"op\":\"replace\", \"path\":\"/isGood\", \"value\":true }]"
+
+result2 :: Either PatchError Dog
+result2 = patchAsValue bytes fido
+```
+
+```hs
+main :: IO ()
+main = either (fail . displayException) (BSL.putStr . encodePretty) result2
+```
+
+The above program outputs:
+
+```json
+{
+  "isGood": true,
+  "name": "fido"
+}
+```
+
+<!--
+
+```haskell
+main :: IO ()
+main = do
+  either (fail . displayException) (BSL.putStr . encodePretty) result
+  either (fail . displayException) (BSL.putStr . encodePretty) result2
+```
+
+-->
+
+## Quality
+
+The full test suite from [`json-patch/json-patch-tests`][json-patch-tests]
+passes. However, some error cases have poor (or misleading) error messages at
+this time.
+
+[json-patch-tests]: https://github.com/json-patch/json-patch-tests
+
+## License
+
+This package is licensed AGPLv3. See [COPYING](./COPYING).
